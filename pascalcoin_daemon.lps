@@ -8,9 +8,10 @@
       <Unit0>
         <Filename Value="pascalcoin_daemon.pp"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
+        <IsVisibleTab Value="True"/>
         <CursorPos X="14" Y="13"/>
         <UsageCount Value="20"/>
+        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="C:\lazarus\fpc\3.0.0\source\packages\fcl-extra\src\daemonapp.pp"/>
@@ -19,8 +20,8 @@
       </Unit1>
       <Unit2>
         <Filename Value="Units\PascalCoin\upcdaemon.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
         <TopLine Value="198"/>
         <CursorPos X="95" Y="233"/>
         <UsageCount Value="10"/>
@@ -96,9 +97,6 @@
         <UsageCount Value="10"/>
       </Unit12>
     </Units>
-    <General>
-      <ActiveWindowIndexAtStart Value="-1"/>
-    </General>
     <JumpHistory HistoryIndex="-1"/>
   </ProjectSession>
 </CONFIG>
