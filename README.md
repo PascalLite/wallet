@@ -1,4 +1,4 @@
-# Pascal Coin: P2P Cryptocurrency without need of historical operations.  
+# Pascal Lite: P2P Cryptocurrency without need of historical operations.  
   
 Copyright (c) 2016 Albert Molina  
   
