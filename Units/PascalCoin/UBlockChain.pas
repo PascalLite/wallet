@@ -390,7 +390,7 @@ Type
     Procedure Clear;
     Function LoadOperations(Operations : TPCOperationsComp; Block : Cardinal) : Boolean;
     Property SafeBox : TPCSafeBox read FSafeBox;
-    Function AddNewBlockChainBlock(Operations: TPCOperationsComp; var newBlock: TBlockAccount; var errors: AnsiString): Boolean;
+    Function AddNewBlockChainBlock(Operations: TPCOperationsComp; var newBlock: TBlockAccount; var errors: AnsiString; timeAdjustment : Cardinal = 0): Boolean;
     Procedure DiskRestoreFromOperations(max_block : Int64);
     Procedure NewLog(Operations: TPCOperationsComp; Logtype: TLogType; Logtxt: AnsiString);
     Property OnLog: TPCBankLog read FOnLog write FOnLog;
@@ -423,10 +423,11 @@ begin
   Result := FSafeBox.AccountsCount;
 end;
 
-function TPCBank.AddNewBlockChainBlock(Operations: TPCOperationsComp; var newBlock: TBlockAccount; var errors: AnsiString): Boolean;
+function TPCBank.AddNewBlockChainBlock(Operations: TPCOperationsComp; var newBlock: TBlockAccount; var errors: AnsiString; timeAdjustment : Cardinal = 0): Boolean;
 Var
   buffer, pow: AnsiString;
   i : Integer;
+  maxAllowedTimestamp : Cardinal;
 begin
   TPCThread.ProtectEnterCriticalSection(Self,FBankLock);
   Try
@@ -458,7 +459,9 @@ begin
           errors := 'Invalid timestamp (New timestamp:'+inttostr(Operations.OperationBlock.timestamp)+' last timestamp ('+Inttostr(SafeBox.BlocksCount-1)+'):'+Inttostr(FLastOperationBlock.timestamp)+')';
           exit;
         end;
-        if (Operations.OperationBlock.timestamp > (UnivDateTimeToUnix(DateTime2UnivDateTime(now))+CT_MaxSecondsDifferenceOfNetworkNodes)) then begin
+        maxAllowedTimestamp := UnivDateTimeToUnix(DateTime2UnivDateTime(now)) + CT_MaxSecondsDifferenceOfNetworkNodes;
+        maxAllowedTimestamp := maxAllowedTimestamp + timeAdjustment;
+        if Operations.OperationBlock.timestamp > maxAllowedTimestamp then begin
           errors := 'Invalid timestamp (Future time '+Inttostr(Operations.OperationBlock.timestamp)+'-'+inttostr(UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+'='+
              inttostr(Operations.OperationBlock.timestamp-UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes)+')';
           exit;

@@ -170,7 +170,7 @@ begin
     ms := TMemoryStream.Create;
     try
       FOperations.SaveBlockToStream(false,ms);
-      Result := Bank.AddNewBlockChainBlock(NewBlockOperations,newBlockAccount,errors);
+      Result := Bank.AddNewBlockChainBlock(NewBlockOperations,newBlockAccount,errors, TNetData.NetData.NetworkAdjustedTime.AdjustedTime);
       if Result then begin
         if Assigned(SenderConnection) then begin
           FNodeLog.NotifyNewLog(ltupdate,SenderConnection.ClassName,Format(';%d;%s;%s',[NewBlockOperations.OperationBlock.block,SenderConnection.ClientRemoteAddr,NewBlockOperations.OperationBlock.block_payload]));

@@ -163,8 +163,26 @@ Type
     Constructor Create(NetData : TNetData);
   End;
 
+  TNetworkAdjustedTime = Class
+  const
+    MinSamples = 3; // Actually Bitcoin have 5 here. Consider to increase this value in the future.
+    MaxSamples = 200;
+  private
+    FKnownClients : array [0..MaxSamples-1] of AnsiString;
+    FTimeOffsets : array [0..MaxSamples-1] of Cardinal;
+    FAdjustedTime : Cardinal;
+    FTimeOffsetsCount : Cardinal;
+    FLock : TCriticalSection;
+  public
+    constructor Create;
+    destructor Destroy;
+    procedure Input(clientId : AnsiString; timeOffset : Cardinal);
+    Property AdjustedTime : Cardinal read FAdjustedTime;
+  end;
+
   TNetData = Class(TComponent)
   private
+    FNetworkAdjustedTime : TNetworkAdjustedTime;
     FNetDataNotifyEventsThread : TNetDataNotifyEventsThread;
     FNodePrivateKey : TECPrivateKey;
     FNetConnections : TPCThreadList;
@@ -229,6 +247,7 @@ Type
     Property NodeServers : TPCThreadList read FNodeServers;
     Property NetConnections : TPCThreadList read FNetConnections;
     Property NetStatistics : TNetStatistics read FNetStatistics;
+    Property NetworkAdjustedTime : TNetworkAdjustedTime read FNetworkAdjustedTime;
     Property IsDiscoveringServers : Boolean read FIsDiscoveringServers;
     Property IsGettingNewBlockChainFromClient : Boolean read FIsGettingNewBlockChainFromClient;
     Property MaxRemoteOperationBlock : TOperationBlock read FMaxRemoteOperationBlock;
@@ -380,6 +399,74 @@ Begin
   Result := AnsiCompareText(P1.ip,P2.ip);
   if Result=0 then Result := P1.port - P2.port;
 End;
+
+Constructor TNetworkAdjustedTime.Create;
+begin
+  FLock := TCriticalSection.Create;
+end;
+
+destructor TNetworkAdjustedTime.Destroy;
+begin
+  FreeAndNil(FLock);
+end;
+
+function Comp(p1, p2: pointer): integer;
+begin
+ result := -1;
+ if Cardinal(p1) = Cardinal(p2) then
+   result := 0
+ else if Cardinal(p1) > Cardinal(p2) then
+   result := 1;
+end;
+
+procedure TNetworkAdjustedTime.Input(clientId : AnsiString; timeOffset : Cardinal);
+var
+  i : Byte;
+  sorted : TList;
+begin
+  FLock.Acquire;
+  try
+    TLog.NewLog(ltinfo, Classname, Format('Input: %s %d', [clientId, timeOffset]));
+
+    if FTimeOffsetsCount > MaxSamples-1 then begin
+      Exit;
+    end;
+
+    for i := 0 to FTimeOffsetsCount do begin
+      if FKnownClients[i] = clientId then begin
+        Exit;
+      end;
+    end;
+
+    FKnownClients[FTimeOffsetsCount] := clientId;
+    FTimeOffsets[FTimeOffsetsCount] := timeOffset;
+    Inc(FTimeOffsetsCount);
+
+    if FTimeOffsetsCount < MinSamples then begin
+       Exit;
+    end;
+
+    sorted := TList.Create;
+    try
+      for i := 0 to FTimeOffsetsCount do begin
+        sorted.Add(Pointer(FTimeOffsets[i]));
+      end;
+      sorted.Sort(Comp);
+
+      TLog.NewLog(ltinfo, Classname, Format('FTimeOffsetsCount: %d', [FTimeOffsetsCount]));
+      if FTimeOffsetsCount And 1 = 1 then begin
+        FAdjustedTime := Cardinal(sorted.Items[FTimeOffsetsCount DIV 2]);
+      end else begin
+        FAdjustedTime := (Cardinal(sorted.Items[FTimeOffsetsCount DIV 2 - 1]) + Cardinal(sorted.Items[FTimeOffsetsCount DIV 2])) DIV 2;
+      end;
+      TLog.NewLog(ltinfo, Classname, Format('FAdjustedTime: %d', [FAdjustedTime]));
+    finally
+      sorted.Free;
+    end;
+  finally
+    FLock.Release;
+  end;
+end;
 
 procedure TNetData.AddServer(NodeServerAddress: TNodeServerAddress);
 Var P : PNodeServerAddress;
@@ -574,6 +661,7 @@ begin
   FRegisteredRequests := TPCThreadList.Create;
   FLastRequestId := 0;
   FNetConnections := TPCThreadList.Create;
+  FNetworkAdjustedTime := TNetworkAdjustedTime.Create;
   FBlackList := TPCThreadList.Create;
   FIsGettingNewBlockChainFromClient := false;
   FNodePrivateKey := TECPrivateKey.Create;
@@ -1025,7 +1113,7 @@ Const CT_LogSender = 'GetNewBlockChainFromClient';
               OpComp.SaveBlockToStream(false,ms);
               ms.Position := 0;
               OpExecute.LoadBlockFromStream(ms,errors);
-              if Bank.AddNewBlockChainBlock(OpExecute,newBlock,errors) then begin
+              if Bank.AddNewBlockChainBlock(OpExecute,newBlock,errors, TNetData.NetData.NetworkAdjustedTime.AdjustedTime) then begin
                 inc(i);
               end else begin
                 TLog.NewLog(lterror,CT_LogSender,'Error creating new bank with client Operations. Block:'+TPCOperationsComp.OperationBlockToText(OpExecute.OperationBlock)+' Error:'+errors);
@@ -1813,7 +1901,7 @@ begin
            exit;
         end;
         if (op.OperationBlock.block=TNode.Node.Bank.BlocksCount) then begin
-          if (TNode.Node.Bank.AddNewBlockChainBlock(op,newBlockAccount,errors)) then begin
+          if (TNode.Node.Bank.AddNewBlockChainBlock(op,newBlockAccount,errors, TNetData.NetData.NetworkAdjustedTime.AdjustedTime)) then begin
             // Ok, one more!
           end else begin
             // Is not a valid entry????
@@ -2001,6 +2089,7 @@ Begin
       exit;
     end;
     FLastKnownTimestampDiff := Int64(connection_ts) - Int64(UnivDateTimeToUnix( DateTime2UnivDateTime(now)));
+    TNetData.NetData.NetworkAdjustedTime.Input(self.Client.RemoteHost, FLastKnownTimestampDiff);
     // Check valid time
     if Not IsValidTime(connection_ts) then begin
       DisconnectInvalidClient(false,'Invalid remote timestamp. Difference:'+inttostr(FLastKnownTimestampDiff)+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes));

@@ -26,7 +26,7 @@ Uses
   {LCLIntf, LCLType, LMessages,}
 {$ENDIF}
   UTCPIP, SysUtils, UThread, SyncObjs, Classes, UJSONFunctions, UAES, UNode,
-  UCrypto, UAccounts, UConst;
+  UCrypto, UAccounts, UConst, UNetProtocol;
 
 Const
   CT_PoolMining_Method_STATUS = 'status';
@@ -555,7 +555,7 @@ begin
   finally
     Op.Free;
   end;
-  mine_values.GetAsVariant('timestamp').Value := UnivDateTimeToUnix(DateTime2UnivDateTime(now));
+  mine_values.GetAsVariant('timestamp').Value := UnivDateTimeToUnix(DateTime2UnivDateTime(now)) + TNetData.NetData.NetworkAdjustedTime.AdjustedTime;
 end;
 
 function TPoolMiningServer.MinerSubmit(Client: TJSONRPCTcpIpClient; params: TPCJSONObject; const id : Variant): Boolean;
