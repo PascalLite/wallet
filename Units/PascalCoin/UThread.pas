@@ -295,8 +295,8 @@ end;
 initialization
   _threads := TPCThreadList.Create;
 finalization
-  {$IFnDEF FPC}
+  {.$IFnDEF FPC}
   FreeAndNil(_threads);
-  {$ENDIF}
+  {.$ENDIF}
 end.
 

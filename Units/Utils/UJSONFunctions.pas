@@ -756,7 +756,6 @@ end;
 
 destructor TPCJSONObject.Destroy;
 begin
-
   inherited;
 end;
 
