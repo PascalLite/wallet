@@ -734,6 +734,7 @@ begin
     FNodeServers.UnlockList;
     FreeAndNil(FNodeServers);
   end;
+  FreeAndNil(FNetworkAdjustedTime);
   l := FBlackList.LockList;
   try
     while (l.Count>0) do DeleteNetClient(l,l.Count-1);
