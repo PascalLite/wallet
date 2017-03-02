@@ -245,7 +245,7 @@ end;
 initialization
   _logs := Nil;
 finalization
-  {$IFnDEF FPC}
+  {.$IFnDEF FPC}
   FreeAndNil(_logs);
-  {$ENDIF}
+  {.$ENDIF}
 end.

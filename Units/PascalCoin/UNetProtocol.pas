@@ -175,7 +175,7 @@ Type
     FLock : TCriticalSection;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     procedure Input(clientId : AnsiString; timeOffset : Integer);
     Property AdjustedTime : Integer read FAdjustedTime;
   end;
@@ -408,6 +408,7 @@ end;
 destructor TNetworkAdjustedTime.Destroy;
 begin
   FreeAndNil(FLock);
+  inherited;
 end;
 
 function Comp(p1, p2: pointer): integer;
@@ -3128,4 +3129,6 @@ begin
   end;
 end;
 
+finalization
+  FreeAndNil(_NetData);
 end.

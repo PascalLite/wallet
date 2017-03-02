@@ -266,18 +266,21 @@ begin
         // Decode
         jsonData := TPCJSONData.ParseJSONValue(PartialBuffer);
         if Assigned(jsonData) then begin
-          if jsonData is TPCJSONObject then begin
-            jsonObject.Assign(jsonData);
-            If (jsonObject.IndexOfName('id')>=0) And (jsonObject.IndexOfName('method')<0) then begin
-              // Is a Response!
-              FlushBufferPendingMessages(true,jsonObject.AsInteger('id',0));
-            end;
-            Result := true;
-            exit;
-          end else begin
-            TLog.NewLog(lterror,ClassName,'Invalid JSON class: '+jsonData.ClassName+' json: '+TBytesToString(PartialBuffer));
+          try
+            if jsonData is TPCJSONObject then begin
+              jsonObject.Assign(jsonData);
+              If (jsonObject.IndexOfName('id')>=0) And (jsonObject.IndexOfName('method')<0) then begin
+                // Is a Response!
+                FlushBufferPendingMessages(true,jsonObject.AsInteger('id',0));
+              end;
+              Result := true;
+              exit;
+            end else begin
+              TLog.NewLog(lterror,ClassName,'Invalid JSON class: '+jsonData.ClassName+' json: '+TBytesToString(PartialBuffer));
+            End;
+          finally
             jsonData.Free;
-          End;
+          end;
         end else begin
           TLog.NewLog(lterror,ClassName,Format('Read %d bytes but no valid JSON inside: %s',[last_bytes_read,TBytesToString(PartialBuffer)]));
         end;
