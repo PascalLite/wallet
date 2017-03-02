@@ -413,9 +413,9 @@ end;
 function Comp(p1, p2: pointer): integer;
 begin
  result := -1;
- if Cardinal(p1) = Cardinal(p2) then
+ if Integer(p1) = Integer(p2) then
    result := 0
- else if Cardinal(p1) > Cardinal(p2) then
+ else if Integer(p1) > Integer(p2) then
    result := 1;
 end;
 
