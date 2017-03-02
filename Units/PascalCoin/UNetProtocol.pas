@@ -169,15 +169,15 @@ Type
     MaxSamples = 200;
   private
     FKnownClients : array [0..MaxSamples-1] of AnsiString;
-    FTimeOffsets : array [0..MaxSamples-1] of Cardinal;
-    FAdjustedTime : Cardinal;
+    FTimeOffsets : array [0..MaxSamples-1] of Integer;
+    FAdjustedTime : Integer;
     FTimeOffsetsCount : Cardinal;
     FLock : TCriticalSection;
   public
     constructor Create;
     destructor Destroy;
-    procedure Input(clientId : AnsiString; timeOffset : Cardinal);
-    Property AdjustedTime : Cardinal read FAdjustedTime;
+    procedure Input(clientId : AnsiString; timeOffset : Integer);
+    Property AdjustedTime : Integer read FAdjustedTime;
   end;
 
   TNetData = Class(TComponent)
@@ -419,7 +419,7 @@ begin
    result := 1;
 end;
 
-procedure TNetworkAdjustedTime.Input(clientId : AnsiString; timeOffset : Cardinal);
+procedure TNetworkAdjustedTime.Input(clientId : AnsiString; timeOffset : Integer);
 var
   i : Byte;
   sorted : TList;
@@ -451,13 +451,14 @@ begin
       for i := 0 to FTimeOffsetsCount do begin
         sorted.Add(Pointer(FTimeOffsets[i]));
       end;
+
       sorted.Sort(Comp);
 
       TLog.NewLog(ltinfo, Classname, Format('FTimeOffsetsCount: %d', [FTimeOffsetsCount]));
       if FTimeOffsetsCount And 1 = 1 then begin
-        FAdjustedTime := Cardinal(sorted.Items[FTimeOffsetsCount DIV 2]);
+        FAdjustedTime := Integer(sorted.Items[FTimeOffsetsCount DIV 2]);
       end else begin
-        FAdjustedTime := (Cardinal(sorted.Items[FTimeOffsetsCount DIV 2 - 1]) + Cardinal(sorted.Items[FTimeOffsetsCount DIV 2])) DIV 2;
+        FAdjustedTime := (Integer(sorted.Items[FTimeOffsetsCount DIV 2 - 1]) + Integer(sorted.Items[FTimeOffsetsCount DIV 2])) DIV 2;
       end;
       TLog.NewLog(ltinfo, Classname, Format('FAdjustedTime: %d', [FAdjustedTime]));
     finally
