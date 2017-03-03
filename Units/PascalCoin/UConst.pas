@@ -71,6 +71,9 @@ Const
   CT_MaxPayloadSize = 255; // Max payload size in bytes
   CT_MaxSecondsDifferenceOfNetworkNodes = 180; // 3 minutes. If a Node has a +- value difference, will be blacklisted
 
+  // For blocks with future timestamp only CT_MaxSecondsFutureBlockTime difference between network time and block time is allowed
+  CT_MaxSecondsFutureBlockTime = 15;
+
   CT_MinServersConnected = 3;
   CT_MaxServersConnected = 5;
 
