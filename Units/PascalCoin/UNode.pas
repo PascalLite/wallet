@@ -658,6 +658,9 @@ begin
         end;
         If op.Previous_Sender_updated_block>block then exit;
         block := op.Previous_Sender_updated_block;
+      end else if (op.OpType = CT_Op_Transaction) and (TOpTransaction(op).Data.target = account) then begin
+        If op.Previous_Destination_updated_block > block then exit;
+        block := op.Previous_Destination_updated_block;
       end;
     end;
     if (block>=aux_block) then exit; // Error... not found a valid block positioning
