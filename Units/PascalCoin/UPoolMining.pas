@@ -558,7 +558,7 @@ begin
   finally
     Op.Free;
   end;
-  mine_values.GetAsVariant('timestamp').Value := UnivDateTimeToUnix(DateTime2UnivDateTime(now)) + TNetData.NetData.NetworkAdjustedTime.AdjustedTime;
+  mine_values.GetAsVariant('timestamp').Value := TNetData.NetData.NetworkAdjustedTime.GetAdjustedTime;
 end;
 
 function TPoolMiningServer.MinerSubmit(Client: TJSONRPCTcpIpClient; params: TPCJSONObject; const id : Variant): Boolean;

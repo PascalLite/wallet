@@ -459,8 +459,9 @@ begin
           errors := 'Invalid timestamp (New timestamp:'+inttostr(Operations.OperationBlock.timestamp)+' last timestamp ('+Inttostr(SafeBox.BlocksCount-1)+'):'+Inttostr(FLastOperationBlock.timestamp)+')';
           exit;
         end;
-        maxAllowedTimestamp := UnivDateTimeToUnix(DateTime2UnivDateTime(now)) + CT_MaxSecondsDifferenceOfNetworkNodes;
-        maxAllowedTimestamp := maxAllowedTimestamp + timeAdjustment;
+        maxAllowedTimestamp := UnivDateTimeToUnix(DateTime2UnivDateTime(now)) + timeAdjustment;
+        // TODO: temporal fix. Must revert this after implementing correct logic for block time handling.
+        maxAllowedTimestamp := maxAllowedTimestamp + CT_MaxSecondsFutureBlockTime;
         if Operations.OperationBlock.timestamp > maxAllowedTimestamp then begin
           errors := 'Invalid timestamp (Future time '+Inttostr(Operations.OperationBlock.timestamp)+'-'+inttostr(UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+'='+
              inttostr(Operations.OperationBlock.timestamp-UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes)+')';

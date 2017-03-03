@@ -170,14 +170,15 @@ Type
   private
     FKnownClients : array [0..MaxSamples-1] of AnsiString;
     FTimeOffsets : array [0..MaxSamples-1] of Integer;
-    FAdjustedTime : Integer;
     FTimeOffsetsCount : Cardinal;
+    FTimeOffset : Integer;
     FLock : TCriticalSection;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Input(clientId : AnsiString; timeOffset : Integer);
-    Property AdjustedTime : Integer read FAdjustedTime;
+    function GetAdjustedTime : Cardinal;
+    property TimeOffset : Integer read FTimeOffset;
   end;
 
   TNetData = Class(TComponent)
@@ -427,7 +428,7 @@ var
 begin
   FLock.Acquire;
   try
-    TLog.NewLog(ltinfo, Classname, Format('Input: %s %d', [clientId, timeOffset]));
+    TLog.NewLog(ltdebug, Classname, Format('Input: %s %d', [clientId, timeOffset]));
 
     if FTimeOffsetsCount > MaxSamples-1 then begin
       Exit;
@@ -455,19 +456,24 @@ begin
 
       sorted.Sort(Comp);
 
-      TLog.NewLog(ltinfo, Classname, Format('FTimeOffsetsCount: %d', [FTimeOffsetsCount]));
+      TLog.NewLog(ltdebug, Classname, Format('FTimeOffsetsCount: %d', [FTimeOffsetsCount]));
       if FTimeOffsetsCount And 1 = 1 then begin
-        FAdjustedTime := Integer(sorted.Items[FTimeOffsetsCount DIV 2]);
+        FTimeOffset := Integer(sorted.Items[FTimeOffsetsCount DIV 2]);
       end else begin
-        FAdjustedTime := (Integer(sorted.Items[FTimeOffsetsCount DIV 2 - 1]) + Integer(sorted.Items[FTimeOffsetsCount DIV 2])) DIV 2;
+        FTimeOffset := (Integer(sorted.Items[FTimeOffsetsCount DIV 2 - 1]) + Integer(sorted.Items[FTimeOffsetsCount DIV 2])) DIV 2;
       end;
-      TLog.NewLog(ltinfo, Classname, Format('FAdjustedTime: %d', [FAdjustedTime]));
+      TLog.NewLog(ltinfo, Classname, Format('Network time offset: %d', [FTimeOffset]));
     finally
       sorted.Free;
     end;
   finally
     FLock.Release;
   end;
+end;
+
+function TNetworkAdjustedTime.GetAdjustedTime : Cardinal;
+begin
+ Result := UnivDateTimeToUnix(DateTime2UnivDateTime(now)) + FTimeOffset;
 end;
 
 procedure TNetData.AddServer(NodeServerAddress: TNodeServerAddress);
@@ -1116,7 +1122,7 @@ Const CT_LogSender = 'GetNewBlockChainFromClient';
               OpComp.SaveBlockToStream(false,ms);
               ms.Position := 0;
               OpExecute.LoadBlockFromStream(ms,errors);
-              if Bank.AddNewBlockChainBlock(OpExecute,newBlock,errors, TNetData.NetData.NetworkAdjustedTime.AdjustedTime) then begin
+              if Bank.AddNewBlockChainBlock(OpExecute,newBlock,errors, TNetData.NetData.NetworkAdjustedTime.TimeOffset) then begin
                 inc(i);
               end else begin
                 TLog.NewLog(lterror,CT_LogSender,'Error creating new bank with client Operations. Block:'+TPCOperationsComp.OperationBlockToText(OpExecute.OperationBlock)+' Error:'+errors);
@@ -1904,7 +1910,7 @@ begin
            exit;
         end;
         if (op.OperationBlock.block=TNode.Node.Bank.BlocksCount) then begin
-          if (TNode.Node.Bank.AddNewBlockChainBlock(op,newBlockAccount,errors, TNetData.NetData.NetworkAdjustedTime.AdjustedTime)) then begin
+          if (TNode.Node.Bank.AddNewBlockChainBlock(op,newBlockAccount,errors, TNetData.NetData.NetworkAdjustedTime.TimeOffset)) then begin
             // Ok, one more!
           end else begin
             // Is not a valid entry????
@@ -2092,7 +2098,12 @@ Begin
       exit;
     end;
     FLastKnownTimestampDiff := Int64(connection_ts) - Int64(UnivDateTimeToUnix( DateTime2UnivDateTime(now)));
+
     TNetData.NetData.NetworkAdjustedTime.Input(self.Client.RemoteHost, FLastKnownTimestampDiff);
+    if (-1) * TNetData.NetData.NetworkAdjustedTime.TimeOffset > CT_MaxSecondsFutureBlockTime then begin
+      TNode.Node.NotifyNetClientMessage(Nil, Format('System time is %d seconds ahead the network time. In order to be able to mine, ensure that your system clock is set correctly.', [(-1) * TNetData.NetData.NetworkAdjustedTime.TimeOffset]));
+    end;
+
     // Check valid time
     if Not IsValidTime(connection_ts) then begin
       DisconnectInvalidClient(false,'Invalid remote timestamp. Difference:'+inttostr(FLastKnownTimestampDiff)+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes));
