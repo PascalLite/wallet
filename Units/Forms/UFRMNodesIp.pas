@@ -59,13 +59,13 @@ begin
   // Encode
   ips := TNode.EncodeNodeServerAddressArrayToIpString(nsarr);
   if Assigned(FAppParams) then begin
-    FAppParams.ParamByName[CT_PARAM_PeerCache].SetAsString(ips);
+    FAppParams.SetValue(CT_PARAM_PeerCache, ips);
     if cbTryOnlyWithThisServers.Checked then Begin
-      FAppParams.ParamByName[CT_PARAM_TryToConnectOnlyWithThisFixedServers].SetAsString(ips);
+      FAppParams.SetValue(CT_PARAM_TryToConnectOnlyWithThisFixedServers, ips);
       TNetData.NetData.DiscoverFixedServersOnly(nsarr);
       Application.MessageBox(PChar('Restart application to take effect'),PChar(Application.Title),MB_OK);
     end else begin
-      FAppParams.ParamByName[CT_PARAM_TryToConnectOnlyWithThisFixedServers].SetAsString('');
+      FAppParams.SetValue(CT_PARAM_TryToConnectOnlyWithThisFixedServers, '');
       setlength(nsarr,0);
       TNetData.NetData.DiscoverFixedServersOnly(nsarr);
     end;
@@ -106,7 +106,7 @@ begin
   memoNodesIp.Clear;
   if Not Assigned(FAppParams) then exit;
   setlength(nsarr,0);
-  ips := FAppParams.ParamByName[CT_PARAM_TryToConnectOnlyWithThisFixedServers].GetAsString('');
+  ips := FAppParams.GetValue(CT_PARAM_TryToConnectOnlyWithThisFixedServers, '');
   if trim(ips)<>'' then begin
     cbTryOnlyWithThisServers.Checked := true;
     TNode.DecodeIpStringToNodeServerAddressArray(ips,nsarr);

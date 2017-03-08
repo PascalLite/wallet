@@ -92,19 +92,22 @@ uses UConst, UAccounts, ULog, UCrypto, UFolderHelper;
 {$ENDIF}
 
 procedure TFRMPascalCoinWalletConfig.bbOkClick(Sender: TObject);
-Var df : Int64;
+Var
+  df : Int64;
   mpk : TMinerPrivateKey;
   i : Integer;
+  rawKey : AnsiString;
+  hexKey : AnsiString;
 begin
   if udInternetServerPort.Position = udJSONRPCMinerServerPort.Position then raise Exception.Create('Server port and JSON-RPC Server miner port are equal!');
 
   if TAccountComp.TxtToMoney(ebDefaultFee.Text,df) then begin
-    AppParams.ParamByName[CT_PARAM_DefaultFee].SetAsInt64(df);
+    AppParams.SetValue(CT_PARAM_DefaultFee, df);
   end else begin
-    ebDefaultFee.Text := TAccountComp.FormatMoney(AppParams.ParamByName[CT_PARAM_DefaultFee].GetAsInteger(0));
+    ebDefaultFee.Text := TAccountComp.FormatMoney(AppParams.GetValue(CT_PARAM_DefaultFee, 0));
     raise Exception.Create('Invalid Fee value');
   end;
-  AppParams.ParamByName[CT_PARAM_InternetServerPort].SetAsInteger(udInternetServerPort.Position );
+  AppParams.SetValue(CT_PARAM_InternetServerPort, udInternetServerPort.Position);
   if rbGenerateANewPrivateKeyEachBlock.Checked then mpk := mpk_NewEachTime
   else if rbUseARandomKey.Checked then mpk := mpk_Random
   else if rbMineAllwaysWithThisKey.Checked then begin
@@ -112,17 +115,20 @@ begin
     if cbPrivateKeyToMine.ItemIndex<0 then raise Exception.Create('Must select a private key');
     i := PtrInt(cbPrivateKeyToMine.Items.Objects[cbPrivateKeyToMine.ItemIndex]);
     if (i<0) Or (i>=FWalletKeys.Count) then raise Exception.Create('Invalid private key');
-    AppParams.ParamByName[CT_PARAM_MinerPrivateKeySelectedPublicKey].SetAsString( TAccountComp.AccountKey2RawString( FWalletKeys.Key[i].AccountKey ) );
+    rawKey := TAccountComp.AccountKey2RawString(FWalletKeys.Key[i].AccountKey);
+    SetLength(hexKey, Length(rawKey) * 2);
+    BinToHex(@rawKey[1], @hexKey[1], Length(rawKey));
+    AppParams.SetValue(CT_PARAM_MinerPrivateKeySelectedPublicKey, hexKey);
   end else mpk := mpk_Random;
 
-  AppParams.ParamByName[CT_PARAM_MinerPrivateKeyType].SetAsInteger(integer(mpk));
-  AppParams.ParamByName[CT_PARAM_JSONRPCMinerServerActive].SetAsBoolean(cbJSONRPCMinerServerActive.Checked );
-  AppParams.ParamByName[CT_PARAM_SaveLogFiles].SetAsBoolean(cbSaveLogFiles.Checked );
-  AppParams.ParamByName[CT_PARAM_ShowLogs].SetAsBoolean(cbShowLogs.Checked );
-  AppParams.ParamByName[CT_PARAM_SaveDebugLogs].SetAsBoolean(cbSaveDebugLogs.Checked);
-  AppParams.ParamByName[CT_PARAM_MinerName].SetAsString(ebMinerName.Text);
-  AppParams.ParamByName[CT_PARAM_ShowModalMessages].SetAsBoolean(cbShowModalMessages.Checked);
-  AppParams.ParamByName[CT_PARAM_JSONRPCMinerServerPort].SetAsInteger(udJSONRPCMinerServerPort.Position);
+  AppParams.SetValue(CT_PARAM_MinerPrivateKeyType, integer(mpk));
+  AppParams.SetValue(CT_PARAM_JSONRPCMinerServerActive, cbJSONRPCMinerServerActive.Checked );
+  AppParams.SetValue(CT_PARAM_SaveLogFiles, cbSaveLogFiles.Checked );
+  AppParams.SetValue(CT_PARAM_ShowLogs, cbShowLogs.Checked );
+  AppParams.SetValue(CT_PARAM_SaveDebugLogs, cbSaveDebugLogs.Checked);
+  AppParams.SetValue(CT_PARAM_MinerName, ebMinerName.Text);
+  AppParams.SetValue(CT_PARAM_ShowModalMessages, cbShowModalMessages.Checked);
+  AppParams.SetValue(CT_PARAM_JSONRPCMinerServerPort, udJSONRPCMinerServerPort.Position);
   ModalResult := MrOk;
 end;
 
@@ -185,22 +191,22 @@ begin
   FAppParams := Value;
   if Not Assigned(Value) then exit;
   Try
-    udInternetServerPort.Position := AppParams.ParamByName[CT_PARAM_InternetServerPort].GetAsInteger(CT_NetServer_Port);
-    ebDefaultFee.Text := TAccountComp.FormatMoney(AppParams.ParamByName[CT_PARAM_DefaultFee].GetAsInt64(0));
-    cbJSONRPCMinerServerActive.Checked := AppParams.ParamByName[CT_PARAM_JSONRPCMinerServerActive].GetAsBoolean(true);
-    case TMinerPrivateKey(AppParams.ParamByName[CT_PARAM_MinerPrivateKeyType].GetAsInteger(Integer(mpk_Random))) of
+    udInternetServerPort.Position := AppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
+    ebDefaultFee.Text := TAccountComp.FormatMoney(AppParams.GetValue(CT_PARAM_DefaultFee, 0));
+    cbJSONRPCMinerServerActive.Checked := AppParams.GetValue(CT_PARAM_JSONRPCMinerServerActive, true);
+    case TMinerPrivateKey(AppParams.GetValue(CT_PARAM_MinerPrivateKeyType, Integer(mpk_Random))) of
       mpk_NewEachTime : rbGenerateANewPrivateKeyEachBlock.Checked := true;
       mpk_Random : rbUseARandomKey.Checked := true;
       mpk_Selected : rbMineAllwaysWithThisKey.Checked := true;
     else rbUseARandomKey.Checked := true;
     end;
     UpdateWalletConfig;
-    cbSaveLogFiles.Checked := AppParams.ParamByName[CT_PARAM_SaveLogFiles].GetAsBoolean(false);
-    cbShowLogs.Checked := AppParams.ParamByName[CT_PARAM_ShowLogs].GetAsBoolean(false);
-    cbSaveDebugLogs.Checked := AppParams.ParamByName[CT_PARAM_SaveDebugLogs].GetAsBoolean(false);
-    ebMinerName.Text := AppParams.ParamByName[CT_PARAM_MinerName].GetAsString('');
-    cbShowModalMessages.Checked := AppParams.ParamByName[CT_PARAM_ShowModalMessages].GetAsBoolean(false);
-    udJSONRPCMinerServerPort.Position := AppParams.ParamByName[CT_PARAM_JSONRPCMinerServerPort].GetAsInteger(CT_JSONRPCMinerServer_Port);
+    cbSaveLogFiles.Checked := AppParams.GetValue(CT_PARAM_SaveLogFiles, false);
+    cbShowLogs.Checked := AppParams.GetValue(CT_PARAM_ShowLogs, false);
+    cbSaveDebugLogs.Checked := AppParams.GetValue(CT_PARAM_SaveDebugLogs, false);
+    ebMinerName.Text := AppParams.GetValue(CT_PARAM_MinerName, '');
+    cbShowModalMessages.Checked := AppParams.GetValue(CT_PARAM_ShowModalMessages, false);
+    udJSONRPCMinerServerPort.Position := AppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port);
   Except
     On E:Exception do begin
       TLog.NewLog(lterror,ClassName,'Exception at SetAppParams: '+E.Message);
@@ -220,6 +226,7 @@ procedure TFRMPascalCoinWalletConfig.UpdateWalletConfig;
 Var i, iselected : Integer;
   s : String;
   wk : TWalletKey;
+  rawKey : AnsiString;
 begin
   if Assigned(FWalletKeys) then begin
     if FWalletKeys.IsValidPassword then begin
@@ -245,8 +252,10 @@ begin
     end;
     cbPrivateKeyToMine.Sorted := true;
     if Assigned(FAppParams) then begin
-      s := FAppParams.ParamByName[CT_PARAM_MinerPrivateKeySelectedPublicKey].GetAsString('');
-      iselected := FWalletKeys.IndexOfAccountKey(TAccountComp.RawString2Accountkey(s));
+      s := FAppParams.GetValue(CT_PARAM_MinerPrivateKeySelectedPublicKey, '');
+      SetLength(rawKey, Length(s) div 2);
+      HexToBin(@s[1], @rawKey[1], Length(rawKey));
+      iselected := FWalletKeys.IndexOfAccountKey(TAccountComp.RawString2Accountkey(rawKey));
       if iselected>=0 then begin
         iselected :=  cbPrivateKeyToMine.Items.IndexOfObject(TObject(iselected));
         cbPrivateKeyToMine.ItemIndex := iselected;

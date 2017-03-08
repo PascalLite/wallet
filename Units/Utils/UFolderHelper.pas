@@ -78,9 +78,9 @@ class function TFolderHelper.GetAppDataFolder: string;
 begin
   {$IFDEF FPC}
   {$IFDEF LINUX}
-  Result :=GetEnvironmentVariable('HOME');
+  Result := GetEnvironmentVariable('HOME');
   {$ELSE}
-  Result :=GetEnvironmentVariable('APPDATA');
+  Result := GetEnvironmentVariable('APPDATA');
   {$ENDIF}
   {$ELSE}
   Result := GetFolder(CSIDL_APPDATA); // c:\Users\(User Name)\AppData\Roaming
@@ -101,9 +101,9 @@ end;
 class function TFolderHelper.GetPascalCoinDataFolder: string;
 begin
   {$IFDEF TESTNET}
-  Result := GetAppDataFolder+PathDelim+'PascalLite_TESTNET';
+  Result := GetAppDataFolder + PathDelim + 'PascalLite_TESTNET';
   {$ELSE}
-  Result := GetAppDataFolder+PathDelim+'PascalLite';
+  Result := GetAppDataFolder + PathDelim + 'PascalLite';
   {$ENDIF}
 end;
 

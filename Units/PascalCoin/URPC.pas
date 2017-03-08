@@ -1788,7 +1788,7 @@ begin
   with FServerSocket do begin
     CreateSocket;
     setLinger(true,10000);
-    bind('0.0.0.0',Inttostr(FPort));
+    bind('0.0.0.0', Inttostr(FPort));
     listen;
     repeat
       if terminated then break;

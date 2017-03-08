@@ -234,10 +234,10 @@ end;
 
 procedure TFRMPayloadDecoder.SaveMethods;
 begin
-  FAppParams.ParamByName['PayloadDecoder.notencrypted'].SetAsBoolean(cbMethodPublicPayload.Checked);
-  FAppParams.ParamByName['PayloadDecoder.usingprivatekeys'].SetAsBoolean(cbUsingPrivateKeys.Checked);
-  FAppParams.ParamByName['PayloadDecoder.usingpasswords'].SetAsBoolean(cbUsingPasswords.Checked);
-  FAppParams.ParamByName['PayloadDecoder.passwords'].SetAsString(memoPasswords.Lines.Text);
+  FAppParams.SetValue('PayloadDecoder.notencrypted', cbMethodPublicPayload.Checked);
+  FAppParams.SetValue('PayloadDecoder.usingprivatekeys', cbUsingPrivateKeys.Checked);
+  FAppParams.SetValue('PayloadDecoder.usingpasswords', cbUsingPasswords.Checked);
+  FAppParams.SetValue('PayloadDecoder.passwords', memoPasswords.Lines.Text);
   FSavedDecodeMethods := true;
 end;
 
@@ -301,10 +301,10 @@ begin
     ebOpHash.text := TCrypto.ToHexaString(Value.OperationHash);
     memoOriginalPayloadInHexa.Lines.Text := TCrypto.ToHexaString(Value.OriginalPayload);
     if Assigned(FWalletKeys) then begin
-      cbMethodPublicPayload.Checked := FAppParams.ParamByName['PayloadDecoder.notencrypted'].GetAsBoolean(true);
-      cbUsingPrivateKeys.Checked := FAppParams.ParamByName['PayloadDecoder.usingprivatekeys'].GetAsBoolean(true);
-      cbUsingPasswords.Checked := FAppParams.ParamByName['PayloadDecoder.usingpasswords'].GetAsBoolean(true);
-      memoPasswords.Lines.Text := FAppParams.ParamByName['PayloadDecoder.passwords'].GetAsString('');
+      cbMethodPublicPayload.Checked := FAppParams.GetValue('PayloadDecoder.notencrypted', true);
+      cbUsingPrivateKeys.Checked := FAppParams.GetValue('PayloadDecoder.usingprivatekeys', true);
+      cbUsingPasswords.Checked := FAppParams.GetValue('PayloadDecoder.usingpasswords', true);
+      memoPasswords.Lines.Text := FAppParams.GetValue('PayloadDecoder.passwords', '');
     end else begin
       cbMethodPublicPayload.Checked := true;
       cbUsingPrivateKeys.Checked := true;
