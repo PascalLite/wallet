@@ -26,7 +26,7 @@ uses
   LCLIntf, LCLType, LMessages,
 {$ENDIF}
   Classes, Grids, UNode, UAccounts, UBlockChain, UAppParams,
-  UWalletKeys, UCrypto;
+  UWalletKeys, UCrypto, UJSONFunctions;
 
 Type
   // TAccountsGrid implements a visual integration of TDrawGrid
@@ -64,8 +64,8 @@ Type
     Procedure UnlockAccountsList;
     Property Node : TNode read GetNode write SetNode;
     Function AccountNumber(GridRow : Integer) : Int64;
-    Procedure SaveToStream(Stream : TStream);
-    Procedure LoadFromStream(Stream : TStream);
+    function SaveToString : AnsiString;
+    Procedure LoadFromString(value : AnsiString);
     Property ShowAllAccounts : Boolean read FShowAllAccounts write SetShowAllAccounts;
     Property AccountsBalance : Int64 read FAccountsBalance;
     Property AccountsCount : Integer read FAccountsCount;
@@ -264,23 +264,49 @@ begin
   if Assigned(FOnUpdated) then FOnUpdated(Self);
 end;
 
-procedure TAccountsGrid.LoadFromStream(Stream: TStream);
+procedure TAccountsGrid.LoadFromString(value : AnsiString);
 Var c,i,j : Integer;
+  json : TPCJSONObject;
+  jsonData : TPCJSONData;
+  columns : TPCJSONArray;
+  column : TPCJSONArray;
 begin
-  if Stream.Read(c,sizeof(c))<sizeof(c) then exit;
-  if c<=0 then exit;
-  SetLength(FColumns,c);
-  for i := 0 to c - 1 do begin
-    Stream.Read(j,sizeof(j));
-    if (j>=Integer(Low(TAccountColumnType))) And (j<=Integer(High(TAccountColumnType))) then begin
-      FColumns[i].ColumnType := TAccountColumnType(j);
-    end else FColumns[i].ColumnType := act_account_number;
-    Stream.Read(FColumns[i].width,sizeof(FColumns[i].width));
+
+  jsonData := TPCJSONData.ParseJSONValue(value);
+  if not Assigned(jsonData) then begin
+    exit;
   end;
-  Stream.Read(j,sizeof(j));
-  If Assigned(FDrawGrid) then FDrawGrid.Width := j;
-  Stream.Read(j,sizeof(j));
-  If Assigned(FDrawGrid) then FDrawGrid.Height := j;
+
+  try
+    if not (jsonData is TPCJSONObject) then begin
+      exit;
+    end;
+    json := TPCJSONObject.Create;
+    try
+      json.Assign(jsonData);
+      columns := json.GetAsArray('columns');
+      if Assigned(columns) then begin
+        SetLength(FColumns, columns.Count);
+        for i := 0 to columns.Count - 1 do begin
+          column := columns.GetAsArray(i);
+          j := column.GetAsVariant(0).Value;
+          if (j>=Integer(Low(TAccountColumnType))) And (j<=Integer(High(TAccountColumnType))) then begin
+            FColumns[i].ColumnType := TAccountColumnType(j);
+          end else FColumns[i].ColumnType := act_account_number;
+          FColumns[i].width := column.GetAsVariant(1).Value;
+        end;
+      end;
+
+      If Assigned(FDrawGrid) then begin
+        FDrawGrid.Width := json.GetAsVariant('width').Value;
+        FDrawGrid.Height := json.GetAsVariant('height').Value;
+      end;
+    finally
+      json.Free;
+    end;
+  finally
+    jsonData.Free;
+  end;
 end;
 
 function TAccountsGrid.LockAccountsList: TOrderedCardinalList;
@@ -482,23 +508,35 @@ begin
   If Assigned(FDrawGrid) then FDrawGrid.Invalidate;
 end;
 
-procedure TAccountsGrid.SaveToStream(Stream: TStream);
-Var c,i,j : Integer;
+function TAccountsGrid.SaveToString : AnsiString;
+var
+  c : Cardinal;
+  i : Integer;
+  j : Integer;
+  json : TPCJSONObject;
+  columns : TPCJSONArray;
+  column : TPCJSONArray;
 begin
-  c := Length(FColumns);
-  Stream.Write(c,sizeof(c));
-  for i := 0 to c - 1 do begin
-    j := Integer(FColumns[i].ColumnType);
-    Stream.Write(j,sizeof(j));
-    if Assigned(FDrawGrid) then begin
-      FColumns[i].width := FDrawGrid.ColWidths[i];
+  Result := '';
+  json := TPCJSONObject.Create;
+  try
+    c := Length(FColumns);
+    columns := json.GetAsArray('columns');
+    for i := 0 to c - 1 do begin
+      column := columns.GetAsArray(i);
+      column.GetAsVariant(0).Value := Integer(FColumns[i].ColumnType);
+      if Assigned(FDrawGrid) then begin
+        FColumns[i].width := FDrawGrid.ColWidths[i];
+      end;
+      column.GetAsVariant(1).Value := FColumns[i].width;
     end;
-    Stream.Write(FColumns[i].width,sizeof(FColumns[i].width));
+    json.GetAsVariant('width').Value := FDrawGrid.Width;
+    json.GetAsVariant('height').Value := FDrawGrid.Height;
+
+    Result := json.ToJSON(false);
+  finally
+    json.Free;
   end;
-  j := FDrawGrid.Width;
-  Stream.Write(j,sizeof(j));
-  j := FDrawGrid.Height;
-  Stream.Write(j,sizeof(j));
 end;
 
 procedure TAccountsGrid.SetDrawGrid(const Value: TDrawGrid);

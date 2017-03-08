@@ -230,7 +230,7 @@ end;
 constructor TPCDaemonThread.Create;
 begin
   inherited Create(True);
-  FIniFile := TIniFile.Create(ExtractFileDir(Application.ExeName)+PathDelim+'pascalcoin_daemon.ini');
+  FIniFile := TIniFile.Create(ExtractFileDir(Application.ExeName)+PathDelim+CT_SETTINGS_FILENAME);
   If FIniFile.ReadBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_SAVELOGS,true) then begin
     _FLog.SaveTypes:=CT_TLogTypes_ALL;
     _FLog.FileName:=TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascalcoin_'+FormatDateTime('yyyymmddhhnn',Now)+'.log';

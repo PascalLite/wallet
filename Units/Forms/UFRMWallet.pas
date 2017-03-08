@@ -328,14 +328,14 @@ begin
         Raise;
       end;
     End;
-    ips := FAppParams.ParamByName[CT_PARAM_TryToConnectOnlyWithThisFixedServers].GetAsString('');
+    ips := FAppParams.GetValue(CT_PARAM_TryToConnectOnlyWithThisFixedServers, '');
     TNode.DecodeIpStringToNodeServerAddressArray(ips,nsarr);
     TNetData.NetData.DiscoverFixedServersOnly(nsarr);
     setlength(nsarr,0);
     // Creating Node:
     FNode := TNode.Node;
-    FNode.NetServer.Port := FAppParams.ParamByName[CT_PARAM_InternetServerPort].GetAsInteger(CT_NetServer_Port);
-    FNode.PeerCache := FAppParams.ParamByName[CT_PARAM_PeerCache].GetAsString('')+';'+CT_Discover_IPs;
+    FNode.NetServer.Port := FAppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
+    FNode.PeerCache := FAppParams.GetValue(CT_PARAM_PeerCache, '')+';'+CT_Discover_IPs;
     // Create RPC server
     FRPCServer := TRPCServer.Create;
     FRPCServer.WalletKeys := WalletKeys;
@@ -372,8 +372,8 @@ begin
   end;
   UpdatePrivateKeys;
   UpdateAccounts(false);
-  if FAppParams.ParamByName[CT_PARAM_FirstTime].GetAsBoolean(true) then begin
-    FAppParams.ParamByName[CT_PARAM_FirstTime].SetAsBoolean(false);
+  if FAppParams.GetValue(CT_PARAM_FirstTime, true) then begin
+    FAppParams.SetValue(CT_PARAM_FirstTime, false);
     miAboutPascalCoinClick(Nil);
   end;
 
@@ -422,7 +422,7 @@ begin
     finally
       FSelectedAccountsGrid.UnlockAccountsList;
     end;
-    Fee := FAppParams.ParamByName[CT_PARAM_DefaultFee].GetAsInt64(0);
+    Fee := FAppParams.GetValue(CT_PARAM_DefaultFee, 0);
     WalletKeys := FWalletKeys;
     ShowModal;
   Finally
@@ -784,11 +784,11 @@ end;
 procedure TFRMWallet.FinishedLoadingApp;
 begin
   FPoolMiningServer := TPoolMiningServer.Create;
-  FPoolMiningServer.Port := FAppParams.ParamByName[CT_PARAM_JSONRPCMinerServerPort].GetAsInteger(CT_JSONRPCMinerServer_Port);
+  FPoolMiningServer.Port := FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port);
   FPoolMiningServer.MinerAccountKey := GetAccountKeyForMiner;
-  FPoolMiningServer.MinerPayload := FAppParams.ParamByName[CT_PARAM_MinerName].GetAsString('');
+  FPoolMiningServer.MinerPayload := FAppParams.GetValue(CT_PARAM_MinerName, '');
   FNode.Operations.AccountKey := GetAccountKeyForMiner;
-  FPoolMiningServer.Active := FAppParams.ParamByName[CT_PARAM_JSONRPCMinerServerActive].GetAsBoolean(true);
+  FPoolMiningServer.Active := FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerActive, true);
   FPoolMiningServer.OnMiningServerNewBlockFound := OnMiningServerNewBlockFound;
 end;
 
@@ -826,7 +826,6 @@ begin
   FLog.SaveTypes := [];
   If Not ForceDirectories(TFolderHelper.GetPascalCoinDataFolder) then raise Exception.Create('Cannot create dir: '+TFolderHelper.GetPascalCoinDataFolder);
   FAppParams := TAppParams.Create(self);
-  FAppParams.FileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'AppParams.prm';
   FNodeNotifyEvents := TNodeNotifyEvents.Create(Self);
   FNodeNotifyEvents.OnBlocksChanged := OnNewAccount;
   FNodeNotifyEvents.OnNodeMessageEvent := OnNodeMessageEvent;
@@ -943,6 +942,8 @@ function TFRMWallet.GetAccountKeyForMiner: TAccountKey;
 Var PK : TECPrivateKey;
   i : Integer;
   PublicK : TECDSA_Public;
+  hexKey : AnsiString;
+  rawKey : AnsiString;
 begin
   Result := CT_TECDSA_Public_Nul;
   if Not Assigned(FWalletKeys) then exit;
@@ -950,7 +951,10 @@ begin
   case FMinerPrivateKeyType of
     mpk_NewEachTime: PublicK := CT_TECDSA_Public_Nul;
     mpk_Selected: begin
-      PublicK := TAccountComp.RawString2Accountkey(FAppParams.ParamByName[CT_PARAM_MinerPrivateKeySelectedPublicKey].GetAsString(''));
+      hexKey := FAppParams.GetValue(CT_PARAM_MinerPrivateKeySelectedPublicKey, '');
+      SetLength(rawKey, Length(hexKey) div 2);
+      HexToBin(@hexKey[1], @rawKey[1], Length(rawKey));
+      PublicK := TAccountComp.RawString2Accountkey(rawKey);
     end;
   else
     // Random
@@ -992,23 +996,16 @@ begin
 end;
 
 procedure TFRMWallet.LoadAppParams;
-Var ms : TMemoryStream;
+var
   s : AnsiString;
   fvi : TFileVersionInfo;
 begin
-  ms := TMemoryStream.Create;
-  Try
-    s := FAppParams.ParamByName[CT_PARAM_GridAccountsStream].GetAsString('');
-    ms.WriteBuffer(s[1],length(s));
-    ms.Position := 0;
-    FAccountsGrid.LoadFromStream(ms);
-  Finally
-    ms.Free;
-  End;
-  If FAppParams.FindParam(CT_PARAM_MinerName)=Nil then begin
+  s := FAppParams.GetValue(CT_PARAM_GridAccountsStream, '');
+  FAccountsGrid.LoadFromString(s);
+  If FAppParams.IsNil(CT_PARAM_MinerName) then begin
     // New configuration... assigning a new random value
     fvi := TFolderHelper.GetTFileVersionInfo(Application.ExeName);
-    FAppParams.ParamByName[CT_PARAM_MinerName].SetAsString('New Node '+DateTimeToStr(Now)+' - '+
+    FAppParams.SetValue(CT_PARAM_MinerName, 'New Node '+DateTimeToStr(Now)+' - '+
       fvi.InternalName+' Build:'+fvi.FileVersion);
   end;
   UpdateConfigChanged;
@@ -1127,7 +1124,7 @@ begin
   With TFRMOperation.Create(Self) do
   Try
     SenderAccounts.Add( FAccountsGrid.AccountNumber(dgAccounts.Row) );
-    Fee := FAppParams.ParamByName[CT_PARAM_DefaultFee].GetAsInt64(0);
+    Fee := FAppParams.GetValue(CT_PARAM_DefaultFee, 0);
     WalletKeys := FWalletKeys;
     ShowModal;
   Finally
@@ -1320,7 +1317,7 @@ begin
     s := DateTimeToStr(now)+' Message received from '+NetConnection.ClientRemoteAddr;
     memoMessages.Lines.Add(DateTimeToStr(now)+' Message received from '+NetConnection.ClientRemoteAddr+' Length '+inttostr(Length(MessageData))+' bytes');
     memoMessages.Lines.Add('RECEIVED> '+MessageData);
-    if FAppParams.ParamByName[CT_PARAM_ShowModalMessages].GetAsBoolean(false) then begin
+    if FAppParams.GetValue(CT_PARAM_ShowModalMessages, false) then begin
       s := DateTimeToStr(now)+' Message from '+NetConnection.ClientRemoteAddr+#10+
          'Length '+inttostr(length(MessageData))+' bytes'+#10+#10;
       if TCrypto.IsHumanReadable(MessageData) then begin
@@ -1352,7 +1349,7 @@ begin
     if (s<>'') then s := s+';';
     s := s + nsarr[i].ip+':'+IntToStr( nsarr[i].port );
   end;
-  FAppParams.ParamByName[CT_PARAM_PeerCache].SetAsString(s);
+  FAppParams.SetValue(CT_PARAM_PeerCache, s);
   TNode.Node.PeerCache := s;
 end;
 
@@ -1398,19 +1395,8 @@ begin
 end;
 
 procedure TFRMWallet.SaveAppParams;
-Var ms : TMemoryStream;
-  s : AnsiString;
 begin
-  ms := TMemoryStream.Create;
-  Try
-    FAccountsGrid.SaveToStream(ms);
-    ms.Position := 0;
-    setlength(s,ms.Size);
-    ms.ReadBuffer(s[1],ms.Size);
-    FAppParams.ParamByName[CT_PARAM_GridAccountsStream].SetAsString(s);
-  Finally
-    ms.Free;
-  End;
+  FAppParams.SetValue(CT_PARAM_GridAccountsStream, FAccountsGrid.SaveToString);
 end;
 
 procedure TFRMWallet.sbSelectedAccountsAddAllClick(Sender: TObject);
@@ -1672,13 +1658,13 @@ procedure TFRMWallet.UpdateConfigChanged;
 Var wa : Boolean;
   i : Integer;
 begin
-  tsLogs.TabVisible := FAppParams.ParamByName[CT_PARAM_ShowLogs].GetAsBoolean(false);
+  tsLogs.TabVisible := FAppParams.GetValue(CT_PARAM_ShowLogs, false);
   if (Not tsLogs.TabVisible) then begin
     FLog.OnNewLog := Nil;
     if PageControl.ActivePage = tsLogs then PageControl.ActivePage := tsMyAccounts;
   end else FLog.OnNewLog := OnNewLog;
-  if FAppParams.ParamByName[CT_PARAM_SaveLogFiles].GetAsBoolean(false) then begin
-    if FAppParams.ParamByName[CT_PARAM_SaveDebugLogs].GetAsBoolean(false) then FLog.SaveTypes := CT_TLogTypes_ALL
+  if FAppParams.GetValue(CT_PARAM_SaveLogFiles, false) then begin
+    if FAppParams.GetValue(CT_PARAM_SaveDebugLogs, false) then FLog.SaveTypes := CT_TLogTypes_ALL
     else FLog.SaveTypes := CT_TLogTypes_DEFAULT;
     FLog.FileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'PascalCointWallet.log';
   end else begin
@@ -1687,21 +1673,21 @@ begin
   end;
   if Assigned(FNode) then begin
     wa := FNode.NetServer.Active;
-    FNode.NetServer.Port := FAppParams.ParamByName[CT_PARAM_InternetServerPort].GetAsInteger(CT_NetServer_Port);
+    FNode.NetServer.Port := FAppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
     FNode.NetServer.Active := wa;
-    FNode.Operations.BlockPayload := FAppParams.ParamByName[CT_PARAM_MinerName].GetAsString('');
+    FNode.Operations.BlockPayload := FAppParams.GetValue(CT_PARAM_MinerName, '');
     FNode.NodeLogFilename := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'blocks.log';
   end;
   if Assigned(FPoolMiningServer) then begin
-    if FPoolMiningServer.Port<>FAppParams.ParamByName[CT_PARAM_JSONRPCMinerServerPort].GetAsInteger(CT_JSONRPCMinerServer_Port) then begin
+    if FPoolMiningServer.Port<>FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port) then begin
       FPoolMiningServer.Active := false;
-      FPoolMiningServer.Port := FAppParams.ParamByName[CT_PARAM_JSONRPCMinerServerPort].GetAsInteger(CT_JSONRPCMinerServer_Port);
+      FPoolMiningServer.Port := FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port);
     end;
-    FPoolMiningServer.Active :=FAppParams.ParamByName[CT_PARAM_JSONRPCMinerServerActive].GetAsBoolean(true);
-    FPoolMiningServer.UpdateAccountAndPayload(GetAccountKeyForMiner,FAppParams.ParamByName[CT_PARAM_MinerName].GetAsString(''));
+    FPoolMiningServer.Active :=FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerActive, true);
+    FPoolMiningServer.UpdateAccountAndPayload(GetAccountKeyForMiner,FAppParams.GetValue(CT_PARAM_MinerName, ''));
   end;
 
-  i := FAppParams.ParamByName[CT_PARAM_MinerPrivateKeyType].GetAsInteger(Integer(mpk_Random));
+  i := FAppParams.GetValue(CT_PARAM_MinerPrivateKeyType, Integer(mpk_Random));
   if (i>=Integer(Low(TMinerPrivatekey))) And (i<=Integer(High(TMinerPrivatekey))) then FMinerPrivateKeyType := TMinerPrivateKey(i)
   else FMinerPrivateKeyType := mpk_Random;
 end;
