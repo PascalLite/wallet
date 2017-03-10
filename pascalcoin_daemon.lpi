@@ -33,7 +33,7 @@
         <Display Use="True" Value=""/>
       </local>
     </RunParams>
-    <Units Count="3">
+    <Units Count="7">
       <Unit0>
         <Filename Value="pascalcoin_daemon.pp"/>
         <IsPartOfProject Value="True"/>
@@ -46,6 +46,22 @@
         <Filename Value="Units\PascalCoin\UCrypto.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="Units\PascalCoin\UPoolMining.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="Units\PascalCoin\UAccounts.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="Units\Utils\UAppParams.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="Units\PascalCoin\URPC.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -421,19 +421,18 @@ begin
       Exit;
     end;
 
-
     If HasOption('s','server') then begin
       s := Trim(GetOptionValue('s','server'));
-      if (s='') then s := 'localhost:'+inttostr(CT_JSONRPCMinerServer_Port);
+      if (s='') then s := 'localhost:'+inttostr(CT_MINING_SERVER_DEFAULT_PORT);
     end else s:='';
     if (s='') then begin
-      WriteLn('Input server name (default is localhost:',CT_JSONRPCMinerServer_Port,'):');
+      WriteLn('Input server name (default is localhost:', CT_MINING_SERVER_DEFAULT_PORT,'):');
       Readln(s);
       trim(s);
-      if (s='') then s := 'localhost:'+inttostr(CT_JSONRPCMinerServer_Port);
+      if (s='') then s := 'localhost:'+inttostr(CT_MINING_SERVER_DEFAULT_PORT);
     end;
     if (pos(':',s)=0) then begin
-      s := trim(s) + ':'+inttostr(CT_JSONRPCMinerServer_Port);
+      s := trim(s) + ':'+inttostr(CT_MINING_SERVER_DEFAULT_PORT);
     end;
     TNode.DecodeIpStringToNodeServerAddressArray(s,nsarr);
     if (length(nsarr)<>1) then begin
@@ -491,7 +490,7 @@ begin
   writeln('PascalCoin Miner - Version: ',CT_MINER_VERSION);
   writeln('Usage: ', ExtractFileName(ExeName), ' -h -s S -p X -d Y -c N -n MYNAME');
   writeln('  -h for help');
-  writeln('  -s S  (S is PascalCoin server:port where default value is localhost:',CT_JSONRPCMinerServer_Port,')');
+  writeln('  -s S  (S is PascalCoin server:port where default value is localhost:',CT_MINING_SERVER_DEFAULT_PORT,')');
   writeln('  -p X  (X is GPU platform)');
   writeln('  -d Y  (Y is GPU device for platform)');
   writeln('    Y can be multiple devices. Example -d 0,2,3  Will use devices 0, 2 and 3');
@@ -503,7 +502,7 @@ begin
   writeln('  (2 CPU''s to server 192.168.1.77 port 4009 and miner name USER_1)');
   writeln('Basic example GPU mining: ');
   writeln('  ',ExtractFileName(ExeName),' -p 0 -d 0 -s -n ABC');
-  writeln('  (p 0 d 0 at server localhost:',CT_JSONRPCMinerServer_Port,' miner name ABC)');
+  writeln('  (p 0 d 0 at server localhost:',CT_MINING_SERVER_DEFAULT_PORT,' miner name ABC)');
   writeln('');
   ShowGPUDrivers;
 end;

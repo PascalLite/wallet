@@ -45,6 +45,7 @@ Type
     FRPCServerThread : TRPCServerThread;
     FActive: Boolean;
     FWalletKeys: TWalletKeysExt;
+    FBindIp : String;
     FPort: Word;
     FJSON20Strict: Boolean;
     FIniFileName: AnsiString;
@@ -60,9 +61,10 @@ Type
     Procedure AddRPCLog(Const Sender : String; Const Message : String);
     Function GetNewCallCounter : Int64;
   public
-    Constructor Create;
+    Constructor Create(ip : string; port : Word);
     Destructor Destroy; override;
-    Property Port : Word read FPort Write FPort;
+    Property Ip : string read FBindIp;
+    Property Port : Word read FPort;
     Property Active : Boolean read FActive write SetActive;
     Property WalletKeys : TWalletKeysExt read FWalletKeys write FWalletKeys;
     //
@@ -76,10 +78,11 @@ Type
   TRPCServerThread = Class(TPCThread)
     FServerSocket:TTCPBlockSocket;
     FPort : Word;
+    FBindIp : String;
   protected
     procedure BCExecute; override;
   public
-    Constructor Create(Port : Word);
+    Constructor Create(bindIp : string; Port : Word);
     Destructor Destroy; Override;
   End;
 
@@ -129,7 +132,7 @@ begin
   if FActive=AValue then Exit;
   FActive:=AValue;
   if (FActive) then begin
-    FRPCServerThread := TRPCServerThread.Create(FPort);
+    FRPCServerThread := TRPCServerThread.Create(FBindIp, FPort);
   end else begin
     FRPCServerThread.Terminate;
     FRPCServerThread.WaitFor;
@@ -170,7 +173,7 @@ begin
   // Result := (clientIp='127.0.0.1');
 end;
 
-constructor TRPCServer.Create;
+constructor TRPCServer.Create(ip : string; port : Word);
 begin
   FRPCLog := Nil;
   FIniFile := Nil;
@@ -178,7 +181,8 @@ begin
   FJSON20Strict := true;
   FWalletKeys := Nil;
   FRPCServerThread := Nil;
-  FPort := CT_JSONRPC_Port;
+  FBindIp := ip;
+  FPort := port;
   FCallsCounter := 0;
   If Not assigned(_RPCServer) then _RPCServer := Self;
 end;
@@ -1787,9 +1791,9 @@ var
 begin
   with FServerSocket do begin
     CreateSocket;
-    setLinger(true,10000);
-    bind('0.0.0.0', Inttostr(FPort));
-    listen;
+    SetLinger(true, 10000);
+    Bind(FBindIp, Inttostr(FPort));
+    Listen;
     repeat
       if terminated then break;
       Try
@@ -1809,10 +1813,11 @@ begin
   end;
 end;
 
-constructor TRPCServerThread.Create(Port: Word);
+constructor TRPCServerThread.Create(bindIp : string; Port: Word);
 begin
   TLog.NewLog(ltInfo,ClassName,'Activating RPC-JSON Server on port '+inttostr(Port));
-  FServerSocket:=TTCPBlockSocket.create;
+  FServerSocket := TTCPBlockSocket.create;
+  FBindIp := bindIp;
   FPort := Port;
   inherited create(false);
 end;

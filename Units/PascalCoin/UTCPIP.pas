@@ -141,7 +141,7 @@ type
   TTcpIpServerListenerThread = Class(TPCThread)
   private
     FNetTcpIpServerServer : TNetTcpIpServer;
-    FServerSocket: TTCPBlockSocket;
+    FServerSocket : TTCPBlockSocket;
     FTcpIpSocketsThread : TPCThreadList;
   protected
     procedure BCExecute; override;
@@ -158,6 +158,7 @@ type
     {$ENDIF}
     {$IFDEF Synapse}
     FTcpIpServer : TTcpIpServerListenerThread;
+    FIp : String;
     FPort : Word;
     FActive : Boolean;
     {$ENDIF}
@@ -176,6 +177,7 @@ type
     Constructor Create; virtual;
     Destructor Destroy; override;
     Property Active : Boolean read GetActive write SetActive;
+    Property Ip : String read FIp Write FIp;
     Property Port : Word read GetPort Write SetPort;
     Property MaxConnections : Integer read FMaxConnections Write FMaxConnections;
     Property NetTcpIpClientClass : TNetTcpIpClientClass read FNetTcpIpClientClass write SetNetTcpIpClientClass;
@@ -624,6 +626,7 @@ constructor TNetTcpIpServer.Create;
 begin
   FNetTcpIpClientClass := TNetTcpIpClient;
   FTcpIpServer := Nil;
+  FIp := '0.0.0.0';
   FMaxConnections := 10;
   {$IFDEF DelphiSockets}
   FTcpIpServer := TTcpServer.Create(Nil);
@@ -774,7 +777,7 @@ begin
   end;
   FServerSocket.Family := SF_IP4;
   FServerSocket.SetLinger(true,10000);
-  FServerSocket.Bind('0.0.0.0',IntToStr(FNetTcpIpServerServer.Port));
+  FServerSocket.Bind(FNetTcpIpServerServer.Ip, IntToStr(FNetTcpIpServerServer.Port));
   if FServerSocket.LastError<>0 then begin
     TLog.NewLog(lterror,Classname,'Cannot bind port '+IntToStr(FNetTcpIpServerServer.Port)+': '+FServerSocket.GetErrorDescEx);
     exit;
