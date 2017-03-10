@@ -41,7 +41,6 @@ Type
   TPCDaemon = Class(TCustomDaemon)
   Private
     FThread : TPCDaemonThread;
-    Procedure ThreadStopped (Sender : TObject);
   public
     Function Start : Boolean; override;
     Function Stop : Boolean; override;
@@ -265,17 +264,11 @@ end;
 
 { TPCDaemon }
 
-procedure TPCDaemon.ThreadStopped(Sender: TObject);
-begin
-  FreeAndNil(FThread);
-end;
-
 function TPCDaemon.Start: Boolean;
 begin
   Result:=inherited Start;
   TLog.NewLog(ltinfo,ClassName,'Daemon Start '+BoolToStr(Result));
-  FThread:=TPCDaemonThread.Create;
-  FThread.OnTerminate:=@ThreadStopped;
+  FThread := TPCDaemonThread.Create;
   FThread.FreeOnTerminate:=False;
   FThread.Resume;
 end;
@@ -285,6 +278,8 @@ begin
   Result:=inherited Stop;
   TLog.NewLog(ltinfo,ClassName,'Daemon Stop: '+BoolToStr(Result));
   FThread.Terminate;
+  FThread.WaitFor;
+  FreeAndNil(FThread);
 end;
 
 function TPCDaemon.Pause: Boolean;
@@ -312,6 +307,8 @@ begin
   Result:=inherited ShutDown;
   TLog.NewLog(ltinfo,ClassName,'Daemon Shutdown: '+BoolToStr(Result));
   FThread.Terminate;
+  FThread.WaitFor;
+  FreeAndNil(FThread);
 end;
 
 function TPCDaemon.Install: Boolean;
@@ -365,4 +362,3 @@ begin
 end;
 
 end.
-
