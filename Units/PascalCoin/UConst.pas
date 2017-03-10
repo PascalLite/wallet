@@ -38,11 +38,11 @@ Const
   CT_Zero_Block_Proof_of_work_in_Hexa =
     {$IFDEF PRODUCTION}'000000000EAE7A91B748C735A5338A11715D815101E0C075F7C60FA52B769EC7'{$ELSE}{$IFDEF TESTNET}''{$ELSE}{$ENDIF}{$ENDIF};
 
+  CT_AccountsPerBlock = 5;
 
   CT_NetServer_Port = {$IFDEF PRODUCTION}4004{$ELSE}{$IFDEF TESTNET}4104{$ELSE}{$ENDIF}{$ENDIF};
   CT_RPC_DEFAULT_BIND_IP = '127.0.0.1';
   CT_RPC_DEFAULT_PORT = {$IFDEF PRODUCTION}4003{$ELSE}{$IFDEF TESTNET}4103{$ELSE}{$ENDIF}{$ENDIF};
-  CT_AccountsPerBlock = 5;
   CT_MINING_SERVER_DEFAULT_BIND_IP = '0.0.0.0';
   CT_MINING_SERVER_DEFAULT_PORT = {$IFDEF PRODUCTION}4009{$ELSE}{$IFDEF TESTNET}4109{$ELSE}{$ENDIF}{$ENDIF};
 
@@ -77,9 +77,9 @@ Const
   CT_MaxSecondsFutureBlockTime = 15;
 
   CT_MinServersConnected = 3;
-  CT_MaxServersConnected = 5;
+  CT_MaxServersConnected = 8;
 
-  CT_MaxClientsConnected = 100;
+  CT_MaxClientsConnected = 125;
 
   CT_BankToDiskEveryNBlocks = 500; // Build 1.3.0 Changed from 1000 to 500
 
