@@ -802,8 +802,8 @@ begin
           ClientThread.Free;
         end;
       end;
-      // Wait
-      sleep(10); // Sleep 10 is better than sleep 1
+      // FIXME: Must not have a sleep here
+      sleep(10)
     End;
   finally
     // Finalize all threads
