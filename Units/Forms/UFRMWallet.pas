@@ -337,7 +337,7 @@ begin
     FNode.NetServer.Port := FAppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
     FNode.PeerCache := FAppParams.GetValue(CT_PARAM_PeerCache, '')+';'+CT_Discover_IPs;
     // Create RPC server
-    FRPCServer := TRPCServer.Create;
+    FRPCServer := TRPCServer.Create(FAppParams.GetValue(CT_PARAM_RPC_BIND_IP, CT_RPC_DEFAULT_BIND_IP), FAppParams.GetValue(CT_PARAM_RPC_PORT, CT_RPC_DEFAULT_PORT));
     FRPCServer.WalletKeys := WalletKeys;
     FRPCServer.Active := true;
     WalletKeys.SafeBox := FNode.Bank.SafeBox;
@@ -784,11 +784,12 @@ end;
 procedure TFRMWallet.FinishedLoadingApp;
 begin
   FPoolMiningServer := TPoolMiningServer.Create;
-  FPoolMiningServer.Port := FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port);
+  FPoolMiningServer.Ip := FAppParams.GetValue(CT_PARAM_MINING_SERVER_BIND_IP, CT_MINING_SERVER_DEFAULT_BIND_IP);
+  FPoolMiningServer.Port := FAppParams.GetValue(CT_PARAM_MINING_SERVER_PORT, CT_MINING_SERVER_DEFAULT_PORT);
   FPoolMiningServer.MinerAccountKey := GetAccountKeyForMiner;
-  FPoolMiningServer.MinerPayload := FAppParams.GetValue(CT_PARAM_MinerName, '');
+  FPoolMiningServer.MinerPayload := FAppParams.GetValue(CT_PARAM_MINER_NAME, '');
   FNode.Operations.AccountKey := GetAccountKeyForMiner;
-  FPoolMiningServer.Active := FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerActive, true);
+  FPoolMiningServer.Active := FAppParams.GetValue(CT_PARAM_MINING_SERVER_ACTIVE, true);
   FPoolMiningServer.OnMiningServerNewBlockFound := OnMiningServerNewBlockFound;
 end;
 
@@ -1002,10 +1003,10 @@ var
 begin
   s := FAppParams.GetValue(CT_PARAM_GridAccountsStream, '');
   FAccountsGrid.LoadFromString(s);
-  If FAppParams.IsNil(CT_PARAM_MinerName) then begin
+  If FAppParams.IsNil(CT_PARAM_MINER_NAME) then begin
     // New configuration... assigning a new random value
     fvi := TFolderHelper.GetTFileVersionInfo(Application.ExeName);
-    FAppParams.SetValue(CT_PARAM_MinerName, 'New Node '+DateTimeToStr(Now)+' - '+
+    FAppParams.SetValue(CT_PARAM_MINER_NAME, 'New Node '+DateTimeToStr(Now)+' - '+
       fvi.InternalName+' Build:'+fvi.FileVersion);
   end;
   UpdateConfigChanged;
@@ -1659,6 +1660,7 @@ Var wa : Boolean;
   i : Integer;
 begin
   tsLogs.TabVisible := FAppParams.GetValue(CT_PARAM_ShowLogs, false);
+
   if (Not tsLogs.TabVisible) then begin
     FLog.OnNewLog := Nil;
     if PageControl.ActivePage = tsLogs then PageControl.ActivePage := tsMyAccounts;
@@ -1671,20 +1673,36 @@ begin
     FLog.SaveTypes := [];
     FLog.FileName := '';
   end;
+
   if Assigned(FNode) then begin
     wa := FNode.NetServer.Active;
     FNode.NetServer.Port := FAppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
     FNode.NetServer.Active := wa;
-    FNode.Operations.BlockPayload := FAppParams.GetValue(CT_PARAM_MinerName, '');
+    FNode.Operations.BlockPayload := FAppParams.GetValue(CT_PARAM_MINER_NAME, '');
     FNode.NodeLogFilename := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'blocks.log';
   end;
-  if Assigned(FPoolMiningServer) then begin
-    if FPoolMiningServer.Port<>FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port) then begin
-      FPoolMiningServer.Active := false;
-      FPoolMiningServer.Port := FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port);
+
+  if Assigned(FRPCServer) then begin
+    // TODO: fix that
+    if (FRPCServer.Ip <> FAppParams.GetValue(CT_PARAM_RPC_BIND_IP, CT_RPC_DEFAULT_BIND_IP)) or
+        (FRPCServer.Port <> FAppParams.GetValue(CT_PARAM_RPC_PORT, CT_RPC_DEFAULT_PORT)) then begin
+      FreeAndNil(FRPCServer);
+      FRPCServer := TRPCServer.Create(FAppParams.GetValue(CT_PARAM_RPC_BIND_IP, CT_RPC_DEFAULT_BIND_IP), FAppParams.GetValue(CT_PARAM_RPC_PORT, CT_RPC_DEFAULT_PORT));
+      FRPCServer.WalletKeys := WalletKeys;
+      FRPCServer.Active := true;
     end;
-    FPoolMiningServer.Active :=FAppParams.GetValue(CT_PARAM_JSONRPCMinerServerActive, true);
-    FPoolMiningServer.UpdateAccountAndPayload(GetAccountKeyForMiner,FAppParams.GetValue(CT_PARAM_MinerName, ''));
+  end;
+
+  if Assigned(FPoolMiningServer) then begin
+    // TODO: fix that
+    if (FPoolMiningServer.Ip <> FAppParams.GetValue(CT_PARAM_MINING_SERVER_BIND_IP, CT_MINING_SERVER_DEFAULT_BIND_IP)) or
+        (FPoolMiningServer.Port <> FAppParams.GetValue(CT_PARAM_MINING_SERVER_PORT, CT_MINING_SERVER_DEFAULT_PORT)) then begin
+      FPoolMiningServer.Active := false;
+      FPoolMiningServer.Ip := FAppParams.GetValue(CT_PARAM_MINING_SERVER_BIND_IP, CT_MINING_SERVER_DEFAULT_BIND_IP);
+      FPoolMiningServer.Port := FAppParams.GetValue(CT_PARAM_MINING_SERVER_PORT, CT_MINING_SERVER_DEFAULT_PORT);
+    end;
+    FPoolMiningServer.Active := FAppParams.GetValue(CT_PARAM_MINING_SERVER_ACTIVE, true);
+    FPoolMiningServer.UpdateAccountAndPayload(GetAccountKeyForMiner,FAppParams.GetValue(CT_PARAM_MINER_NAME, ''));
   end;
 
   i := FAppParams.GetValue(CT_PARAM_MinerPrivateKeyType, Integer(mpk_Random));

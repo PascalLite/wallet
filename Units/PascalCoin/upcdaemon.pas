@@ -21,24 +21,14 @@ uses
   Classes, SysUtils, daemonapp,
   SyncObjs, UOpenSSL, UCrypto, UNode, UFileStorage, UFolderHelper, UWalletKeys, UConst, ULog, UNetProtocol,
   IniFiles,
-  UThread, URPC, UPoolMining, UAccounts;
-
-Const
-  CT_INI_SECTION_GLOBAL = 'GLOBAL';
-  CT_INI_IDENT_SAVELOGS = 'SAVELOGS';
-  CT_INI_IDENT_RPC_PORT = 'RPC_PORT';
-  CT_INI_IDENT_RPC_SAVELOGS = 'RPC_SAVELOGS';
-  CT_INI_IDENT_RPC_SERVERMINER_PORT = 'RPC_SERVERMINER_PORT';
-  CT_INI_IDENT_MINER_B58_PUBLICKEY = 'RPC_SERVERMINER_B58_PUBKEY';
-  CT_INI_IDENT_MINER_NAME = 'RPC_SERVERMINER_NAME';
-  CT_INI_IDENT_MINER_MAX_CONNECTIONS = 'RPC_SERVERMINER_MAX_CONNECTIONS';
+  UThread, URPC, UPoolMining, UAccounts, UAppParams;
 
 Type
   { TPCDaemonThread }
 
   TPCDaemonThread = Class(TPCThread)
   private
-    FIniFile : TIniFile;
+    FAppParams : TAppParams;
   protected
     Procedure BCExecute; override;
   public
@@ -89,88 +79,114 @@ var
   FRPC : TRPCServer;
   FMinerServer : TPoolMiningServer;
 
-  Procedure InitRPCServer;
-  Var port : Integer;
-  Begin
-    port := FIniFile.ReadInteger(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_PORT,-1);
+  procedure InitRPCServer;
+  var
+    ip : string;
+    port : Integer;
+  begin
+    port := FAppParams.GetValue(CT_PARAM_RPC_PORT, -1);
     if (port<=0) then begin
-      FIniFile.WriteInteger(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_PORT,CT_JSONRPC_Port);
-      port:=CT_JSONRPC_Port;
+      FAppParams.SetValue(CT_PARAM_RPC_PORT, CT_RPC_DEFAULT_PORT);
+      port := CT_RPC_DEFAULT_PORT;
       TLog.NewLog(ltInfo,ClassName,'Saving RPC server port to IniFile: '+IntToStr(port));
     end;
-    FRPC := TRPCServer.Create;
-    FRPC.WalletKeys := FWalletKeys;
-    FRPC.Port:=port;
-    FRPC.Active:=true;
-    TLog.NewLog(ltInfo,ClassName,'RPC server is active on port '+IntToStr(port));
-    If FIniFile.ReadBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_SAVELOGS,true) then begin
-      FIniFile.WriteBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_SAVELOGS,true);
-      FRPC.LogFileName:= TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascalcoin_rpc.log';
-      TLog.NewLog(ltInfo,ClassName,'Activating RPC logs on file '+FRPC.LogFileName);
+
+    if not FAppParams.IsNil(CT_PARAM_RPC_BIND_IP) then begin
+      ip := FAppParams.GetValue(CT_PARAM_RPC_BIND_IP, CT_RPC_DEFAULT_BIND_IP);
     end else begin
-      FIniFile.WriteBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_SAVELOGS,false);
-      TLog.NewLog(ltInfo,ClassName,'RPC logs not enabled on IniFile value '+CT_INI_IDENT_RPC_SAVELOGS+'=0');
+      ip := CT_RPC_DEFAULT_BIND_IP;
+      FAppParams.SetValue(CT_PARAM_RPC_BIND_IP, ip);
+    end;
+
+    FRPC := TRPCServer.Create(ip, port);
+    FRPC.WalletKeys := FWalletKeys;
+    FRPC.Active := true;
+    TLog.NewLog(ltInfo, ClassName, 'RPC server is active on port ' + IntToStr(port));
+    If FAppParams.GetValue(CT_PARAM_RPC_SAVELOGS, true) then begin
+      FAppParams.SetValue(CT_PARAM_RPC_SAVELOGS, true);
+      FRPC.LogFileName := TFolderHelper.GetPascalCoinDataFolder + PathDelim + 'pascalcoin_rpc.log';
+      TLog.NewLog(ltInfo, ClassName, 'Activating RPC logs on file ' + FRPC.LogFileName);
+    end else begin
+      FAppParams.SetValue(CT_PARAM_RPC_SAVELOGS, false);
+      TLog.NewLog(ltInfo,ClassName,'RPC logs not enabled on IniFile value ' + CT_PARAM_RPC_SAVELOGS + '=0');
     end;
   end;
 
   Procedure InitRPCMinerServer;
-  Var i, port, maxconnections : Integer;
+  var
+    i : Integer;
+    port, maxconnections : Integer;
     s : String;
+    ip : String;
     pubkey : TAccountKey;
     errors : AnsiString;
     ECPK : TECPrivateKey;
   Begin
-    i := FIniFile.ReadInteger(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_SERVERMINER_PORT,-1);
-    if (i<0) then i:=CT_JSONRPCMinerServer_Port;
-    if (i>0) then begin
-      port := i;
-      FIniFile.WriteInteger(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_RPC_SERVERMINER_PORT,port);
-      pubkey := CT_TECDSA_Public_Nul;
-      s := Trim(FIniFile.ReadString(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_MINER_B58_PUBLICKEY,''));
-      If (s='') Or (Not TAccountComp.AccountKeyFromImport(s,pubkey,errors)) then begin
-        If s<>'' then TLog.NewLog(lterror,Classname,'Invalid INI file public key: '+errors);
-        i := 0;
-        While (i<FWalletKeys.Count) And (pubkey.EC_OpenSSL_NID=CT_TECDSA_Public_Nul.EC_OpenSSL_NID) do begin
-          if (FWalletKeys.Key[i].CryptedKey<>'') then pubkey := FWalletKeys[i].AccountKey
-          else inc(i);
-        end;
-        if (pubkey.EC_OpenSSL_NID=CT_TECDSA_Public_Nul.EC_OpenSSL_NID) then begin
-          // New key
-          ECPK := TECPrivateKey.Create;
-          try
-            ECPK.GenerateRandomPrivateKey(CT_Default_EC_OpenSSL_NID);
-            FWalletKeys.AddPrivateKey('RANDOM NEW BY DAEMON '+FormatDateTime('yyyy-mm-dd hh:nn:dd',now),ECPK);
-            pubkey := ECPK.PublicKey;
-            FIniFile.WriteString(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_MINER_B58_PUBLICKEY,
-              TAccountComp.AccountKeyToExport(pubkey));
-            TLog.NewLog(ltInfo,ClassName, 'Generated new pubkey for miner: '+TAccountComp.AccountKeyToExport(pubkey));
-          finally
-            ECPK.Free;
-          end;
-        end;
-      end else begin
-        // pubkey is mine?
-        if (FWalletKeys.IndexOfAccountKey(pubkey)<0) then begin
-          TLog.NewLog(lterror,classname,'WARNING: Using a public key without private key in wallet! '+TAccountComp.AccountKeyToExport(pubkey));
-        end;
-      end;
-      i := FWalletKeys.IndexOfAccountKey(pubkey);
-      s := Trim(FIniFile.ReadString(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_MINER_NAME,''));
-      if (SameText(s,'TIME')) then begin
-        s := FormatDateTime('yyyy-mm-dd hh:nn',Now);
-        TLog.NewLog(ltInfo,ClassName,'Generated new miner name: '+s);
-      end;
-      maxconnections:=FIniFile.ReadInteger(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_MINER_MAX_CONNECTIONS,1000);
-      TLog.NewLog(ltinfo,ClassName,Format('Activating RPC Miner Server on port %d, name "%s", max conections %d and public key %s',
-        [port,s,maxconnections,TAccountComp.AccountKeyToExport(pubkey)]));
-      FMinerServer := TPoolMiningServer.Create;
-      FMinerServer.UpdateAccountAndPayload(pubkey,s);
-      FMinerServer.Port:=port;
-      FMinerServer.Active:=True;
-      FMinerServer.MaxConnections:=maxconnections;
-    end else begin
-      TLog.NewLog(ltinfo,ClassName,'RPC Miner Server NOT ACTIVE (Ini file is '+CT_INI_IDENT_RPC_SERVERMINER_PORT+'=0)');
+    if not FAppParams.GetValue(CT_PARAM_MINING_SERVER_ACTIVE, true) then begin
+      TLog.NewLog(ltinfo, ClassName, Format('Mining server is DISABLED (to enable set %s=1)', [CT_PARAM_MINING_SERVER_ACTIVE]));
+      exit;
     end;
+
+    if FAppParams.IsNil(CT_PARAM_MINING_SERVER_PORT) then begin
+      port := CT_MINING_SERVER_DEFAULT_PORT;
+      FAppParams.SetValue(CT_PARAM_MINING_SERVER_PORT, port);
+    end else begin
+      port := FAppParams.GetValue(CT_PARAM_MINING_SERVER_PORT, CT_MINING_SERVER_DEFAULT_PORT);
+    end;
+
+    ip := FAppParams.GetValue(CT_PARAM_MINING_SERVER_BIND_IP, CT_MINING_SERVER_DEFAULT_BIND_IP);
+
+    pubkey := CT_TECDSA_Public_Nul;
+    s := Trim(FAppParams.GetValue(CT_PARAM_MINER_B58_PUBLICKEY,''));
+    If (s='') Or (Not TAccountComp.AccountKeyFromImport(s,pubkey,errors)) then begin
+      If s<>'' then TLog.NewLog(lterror,Classname,'Invalid INI file public key: '+errors);
+      i := 0;
+      While (i<FWalletKeys.Count) And (pubkey.EC_OpenSSL_NID=CT_TECDSA_Public_Nul.EC_OpenSSL_NID) do begin
+        if (FWalletKeys.Key[i].CryptedKey<>'') then pubkey := FWalletKeys[i].AccountKey
+        else inc(i);
+      end;
+      if (pubkey.EC_OpenSSL_NID=CT_TECDSA_Public_Nul.EC_OpenSSL_NID) then begin
+        // New key
+        ECPK := TECPrivateKey.Create;
+        try
+          ECPK.GenerateRandomPrivateKey(CT_Default_EC_OpenSSL_NID);
+          FWalletKeys.AddPrivateKey('RANDOM NEW BY DAEMON '+FormatDateTime('yyyy-mm-dd hh:nn:dd',now),ECPK);
+          pubkey := ECPK.PublicKey;
+          FAppParams.SetValue(CT_PARAM_MINER_B58_PUBLICKEY, TAccountComp.AccountKeyToExport(pubkey));
+          TLog.NewLog(ltInfo,ClassName, 'Generated new pubkey for miner: '+TAccountComp.AccountKeyToExport(pubkey));
+        finally
+          ECPK.Free;
+        end;
+      end;
+    end else begin
+      // pubkey is mine?
+      if (FWalletKeys.IndexOfAccountKey(pubkey)<0) then begin
+        TLog.NewLog(lterror, classname, 'WARNING: Using a public key without private key in wallet!' + TAccountComp.AccountKeyToExport(pubkey));
+      end;
+    end;
+
+    i := FWalletKeys.IndexOfAccountKey(pubkey);
+    s := Trim(FAppParams.GetValue(CT_PARAM_MINER_NAME, ''));
+    if (SameText(s,'TIME')) then begin
+      s := FormatDateTime('yyyy-mm-dd hh:nn',Now);
+      TLog.NewLog(ltInfo,ClassName,'Generated new miner name: '+s);
+    end;
+    maxconnections := FAppParams.GetValue(CT_PARAM_MINING_SERVER_MAX_CONNECTIONS, 1000);
+    TLog.NewLog(ltinfo,ClassName,Format('Activating RPC Miner Server on %s:%d, name "%s", max conections %d and public key %s',
+      [ip, port, s, maxconnections, TAccountComp.AccountKeyToExport(pubkey)]));
+
+    FMinerServer := TPoolMiningServer.Create;
+    FMinerServer.UpdateAccountAndPayload(pubkey, s);
+    FMinerServer.Ip := ip;
+    FMinerServer.Port := port;
+    FMinerServer.Active := True;
+    FMinerServer.MaxConnections := maxconnections;
+
+    TLog.NewLog(ltinfo,
+                ClassName,
+                Format('Mining server is ENABLED and is listening on %s:%d. ' +
+                       'To change listening ip or port use parameters %s and %s',
+                       [ip, port, CT_PARAM_MINING_SERVER_BIND_IP, CT_PARAM_MINING_SERVER_PORT]));
   end;
 
 begin
@@ -230,19 +246,19 @@ end;
 constructor TPCDaemonThread.Create;
 begin
   inherited Create(True);
-  FIniFile := TIniFile.Create(ExtractFileDir(Application.ExeName)+PathDelim+CT_SETTINGS_FILENAME);
-  If FIniFile.ReadBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_SAVELOGS,true) then begin
-    _FLog.SaveTypes:=CT_TLogTypes_ALL;
-    _FLog.FileName:=TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascalcoin_'+FormatDateTime('yyyymmddhhnn',Now)+'.log';
-    FIniFile.WriteBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_SAVELOGS,true);
+  FAppParams := TAppParams.Create(Nil);
+  If FAppParams.GetValue(CT_PARAM_SaveLogFiles, true) then begin
+    _FLog.SaveTypes := CT_TLogTypes_ALL;
+    _FLog.FileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascalcoin_'+FormatDateTime('yyyymmddhhnn',Now)+'.log';
+    FAppParams.SetValue(CT_PARAM_SaveLogFiles, true);
   end else begin
-    FIniFile.WriteBool(CT_INI_SECTION_GLOBAL,CT_INI_IDENT_SAVELOGS,false);
+    FAppParams.SetValue(CT_PARAM_SaveLogFiles, false);
   end;
 end;
 
 destructor TPCDaemonThread.Destroy;
 begin
-  FreeAndNil(FIniFile);
+  FreeAndNil(FAppParams);
   inherited Destroy;
 end;
 

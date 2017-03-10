@@ -10,7 +10,7 @@ uses
   {$ENDIF}{$ENDIF}
   sysutils,
   Classes, daemonapp,
-  UCrypto, upcdaemon;
+  UCrypto, upcdaemon, UAccounts, UPoolMining, UAppParams;
 
 
 begin
