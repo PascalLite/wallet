@@ -38,15 +38,24 @@ type
   TFRMPascalCoinWalletConfig = class(TForm)
     cbJSONRPCMinerServerActive: TCheckBox;
     ebDefaultFee: TEdit;
+    lbMiningServerBindIpDefault: TLabel;
+    lbRpcServerBindIpDefault: TLabel;
+    RPCServerPort: TEdit;
+    MiningServerIp: TEdit;
+    Label8: TLabel;
+    RPCServerPortDefault: TLabel;
+    RPCServerIp: TEdit;
     Label1: TLabel;
     cbSaveLogFiles: TCheckBox;
     cbShowLogs: TCheckBox;
     bbOk: TBitBtn;
     bbCancel: TBitBtn;
+    Label6: TLabel;
+    Label7: TLabel;
     udInternetServerPort: TUpDown;
     ebInternetServerPort: TEdit;
     Label2: TLabel;
-    lblDefaultInternetServerPort: TLabel;
+    InternetServerPortDefault: TLabel;
     bbUpdatePassword: TBitBtn;
     Label3: TLabel;
     ebMinerName: TEdit;
@@ -63,6 +72,7 @@ type
     cbPrivateKeyToMine: TComboBox;
     cbSaveDebugLogs: TCheckBox;
     bbOpenDataFolder: TBitBtn;
+    udRPCServerPort: TUpDown;
     procedure FormCreate(Sender: TObject);
     procedure bbOkClick(Sender: TObject);
     procedure bbUpdatePasswordClick(Sender: TObject);
@@ -74,9 +84,7 @@ type
     procedure SetAppParams(const Value: TAppParams);
     procedure SetWalletKeys(const Value: TWalletKeys);
     Procedure UpdateWalletConfig;
-    { Private declarations }
   public
-    { Public declarations }
     Property AppParams : TAppParams read FAppParams write SetAppParams;
     Property WalletKeys : TWalletKeys read FWalletKeys write SetWalletKeys;
   end;
@@ -99,15 +107,23 @@ Var
   rawKey : AnsiString;
   hexKey : AnsiString;
 begin
-  if udInternetServerPort.Position = udJSONRPCMinerServerPort.Position then raise Exception.Create('Server port and JSON-RPC Server miner port are equal!');
+  if udInternetServerPort.Position = udJSONRPCMinerServerPort.Position then raise Exception.Create('Internet server port and Mining server port are equal!');
+  if udInternetServerPort.Position = udRPCServerPort.Position then raise Exception.Create('Internet server port and RPC server port are equal!');
+  if udRPCServerPort.Position = udJSONRPCMinerServerPort.Position then raise Exception.Create('RPC server port and Mining server port are equal!');
 
-  if TAccountComp.TxtToMoney(ebDefaultFee.Text,df) then begin
+  if TAccountComp.TxtToMoney(ebDefaultFee.Text, df) then begin
     AppParams.SetValue(CT_PARAM_DefaultFee, df);
   end else begin
     ebDefaultFee.Text := TAccountComp.FormatMoney(AppParams.GetValue(CT_PARAM_DefaultFee, 0));
     raise Exception.Create('Invalid Fee value');
   end;
+
   AppParams.SetValue(CT_PARAM_InternetServerPort, udInternetServerPort.Position);
+  AppParams.SetValue(CT_PARAM_RPC_BIND_IP, RPCServerIp.Text);
+  AppParams.SetValue(CT_PARAM_RPC_PORT, udRPCServerPort.Position);
+  AppParams.SetValue(CT_PARAM_MINING_SERVER_BIND_IP, MiningServerIp.Text);
+  AppParams.SetValue(CT_PARAM_MINING_SERVER_PORT, udJSONRPCMinerServerPort.Position);
+
   if rbGenerateANewPrivateKeyEachBlock.Checked then mpk := mpk_NewEachTime
   else if rbUseARandomKey.Checked then mpk := mpk_Random
   else if rbMineAllwaysWithThisKey.Checked then begin
@@ -122,13 +138,13 @@ begin
   end else mpk := mpk_Random;
 
   AppParams.SetValue(CT_PARAM_MinerPrivateKeyType, integer(mpk));
-  AppParams.SetValue(CT_PARAM_JSONRPCMinerServerActive, cbJSONRPCMinerServerActive.Checked );
+  AppParams.SetValue(CT_PARAM_MINING_SERVER_ACTIVE, cbJSONRPCMinerServerActive.Checked );
   AppParams.SetValue(CT_PARAM_SaveLogFiles, cbSaveLogFiles.Checked );
   AppParams.SetValue(CT_PARAM_ShowLogs, cbShowLogs.Checked );
   AppParams.SetValue(CT_PARAM_SaveDebugLogs, cbSaveDebugLogs.Checked);
-  AppParams.SetValue(CT_PARAM_MinerName, ebMinerName.Text);
+  AppParams.SetValue(CT_PARAM_MINER_NAME, ebMinerName.Text);
   AppParams.SetValue(CT_PARAM_ShowModalMessages, cbShowModalMessages.Checked);
-  AppParams.SetValue(CT_PARAM_JSONRPCMinerServerPort, udJSONRPCMinerServerPort.Position);
+
   ModalResult := MrOk;
 end;
 
@@ -176,13 +192,16 @@ end;
 
 procedure TFRMPascalCoinWalletConfig.FormCreate(Sender: TObject);
 begin
-  lblDefaultInternetServerPort.Caption := Format('(Default %d)',[CT_NetServer_Port]);
-  udInternetServerPort.Position := CT_NetServer_Port;
+  InternetServerPortDefault.Caption := Format('Default %d', [CT_NetServer_Port]);
+  RPCServerPortDefault.Caption := Format('Default %d',[CT_RPC_DEFAULT_PORT]);
+  lblDefaultJSONRPCMinerServerPort.Caption := Format('Default %d', [CT_MINING_SERVER_DEFAULT_PORT]);
+  lbRpcServerBindIpDefault.Caption := Format('Default %s', [CT_RPC_DEFAULT_BIND_IP]);
+  lbMiningServerBindIpDefault.Caption := Format('Default %s', [CT_MINING_SERVER_DEFAULT_BIND_IP]);
+
   ebDefaultFee.Text := TAccountComp.FormatMoney(0);
   ebMinerName.Text := '';
   bbUpdatePassword.Enabled := false;
   UpdateWalletConfig;
-  lblDefaultJSONRPCMinerServerPort.Caption := Format('(Default %d)',[CT_JSONRPCMinerServer_Port]);
 end;
 
 procedure TFRMPascalCoinWalletConfig.SetAppParams(const Value: TAppParams);
@@ -193,7 +212,7 @@ begin
   Try
     udInternetServerPort.Position := AppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
     ebDefaultFee.Text := TAccountComp.FormatMoney(AppParams.GetValue(CT_PARAM_DefaultFee, 0));
-    cbJSONRPCMinerServerActive.Checked := AppParams.GetValue(CT_PARAM_JSONRPCMinerServerActive, true);
+    cbJSONRPCMinerServerActive.Checked := AppParams.GetValue(CT_PARAM_MINING_SERVER_ACTIVE, true);
     case TMinerPrivateKey(AppParams.GetValue(CT_PARAM_MinerPrivateKeyType, Integer(mpk_Random))) of
       mpk_NewEachTime : rbGenerateANewPrivateKeyEachBlock.Checked := true;
       mpk_Random : rbUseARandomKey.Checked := true;
@@ -204,9 +223,14 @@ begin
     cbSaveLogFiles.Checked := AppParams.GetValue(CT_PARAM_SaveLogFiles, false);
     cbShowLogs.Checked := AppParams.GetValue(CT_PARAM_ShowLogs, false);
     cbSaveDebugLogs.Checked := AppParams.GetValue(CT_PARAM_SaveDebugLogs, false);
-    ebMinerName.Text := AppParams.GetValue(CT_PARAM_MinerName, '');
+    ebMinerName.Text := AppParams.GetValue(CT_PARAM_MINER_NAME, '');
     cbShowModalMessages.Checked := AppParams.GetValue(CT_PARAM_ShowModalMessages, false);
-    udJSONRPCMinerServerPort.Position := AppParams.GetValue(CT_PARAM_JSONRPCMinerServerPort, CT_JSONRPCMinerServer_Port);
+
+    RPCServerIp.Text := FAppParams.GetValue(CT_PARAM_RPC_BIND_IP, CT_RPC_DEFAULT_BIND_IP);
+    udRPCServerPort.Position := FAppParams.GetValue(CT_PARAM_RPC_PORT, CT_RPC_DEFAULT_PORT);
+
+    MiningServerIp.Text := FAppParams.GetValue(CT_PARAM_MINING_SERVER_BIND_IP, CT_MINING_SERVER_DEFAULT_BIND_IP);
+    udJSONRPCMinerServerPort.Position := FAppParams.GetValue(CT_PARAM_MINING_SERVER_PORT, CT_MINING_SERVER_DEFAULT_PORT);
   Except
     On E:Exception do begin
       TLog.NewLog(lterror,ClassName,'Exception at SetAppParams: '+E.Message);
