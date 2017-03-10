@@ -82,7 +82,67 @@ Type
     error_text : AnsiString;
   end;
 
-  TNetConnection = Class;
+  TNetConnection = Class(TComponent)
+  private
+    FTcpIpClient : TNetTcpIpClient;
+    FRemoteOperationBlock : TOperationBlock;
+    FLastDataReceivedTS : Cardinal;
+    FLastDataSendedTS : Cardinal;
+    FClientBufferRead : TStream;
+    FNetLock : TCriticalSection;
+    FIsWaitingForResponse : Boolean;
+    FLastKnownTimestampDiff : Int64;
+    FIsMyselfServer : Boolean;
+    FClientPublicKey : TAccountKey;
+    FCreatedTime: TDateTime;
+    FClientAppVersion: AnsiString;
+    FDoFinalizeConnection : Boolean;
+    FNetProtocolVersion: TNetProtocolVersion;
+    FAlertedForNewProtocolAvailable : Boolean;
+    FHasReceivedData : Boolean;
+    FIsDownloadingBlocks : Boolean;
+    FRandomWaitSecondsSendHello : Cardinal;
+    function GetConnected: Boolean;
+    procedure SetConnected(const Value: Boolean);
+    procedure TcpClient_OnConnect(Sender: TObject);
+    procedure TcpClient_OnDisconnect(Sender: TObject);
+    Function DoSendAndWaitForResponse(operation: Word; RequestId: Integer; SendDataBuffer, ReceiveDataBuffer: TStream; MaxWaitTime : Cardinal; var HeaderData : TNetHeaderData) : Boolean;
+    procedure DoProcessBuffer;
+    Procedure DoProcess_Hello(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_Message(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_GetBlocks_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_GetBlocks_Response(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_GetOperationsBlock_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_NewBlock(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_AddOperations(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure SetClient(Const Value : TNetTcpIpClient);
+    Function ReadTcpClientBuffer(MaxWaitMiliseconds : Cardinal; var HeaderData : TNetHeaderData; BufferData : TStream) : Boolean;
+    Procedure DisconnectInvalidClient(ItsMyself : Boolean; Const why : AnsiString);
+    function GetClient: TNetTcpIpClient;
+  protected
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    Procedure Send(NetTranferType : TNetTransferType; operation, errorcode : Word; request_id : Integer; DataBuffer : TStream);
+    Procedure SendError(NetTranferType : TNetTransferType; operation, request_id : Integer; error_code : Integer; error_text : AnsiString);
+  public
+    Constructor Create(AOwner : TComponent); override;
+    Destructor Destroy; override;
+    Function ConnectTo(ServerIP: String; ServerPort:Word) : Boolean;
+    Property Connected : Boolean read GetConnected write SetConnected;
+    Function Send_Hello(NetTranferType : TNetTransferType; request_id : Integer) : Boolean;
+    Function Send_NewBlockFound : Boolean;
+    Function Send_GetBlocks(StartAddress, quantity : Cardinal; var request_id : Cardinal) : Boolean;
+    Function Send_AddOperations(Operations : TOperationsHashTree) : Boolean;
+    Function Send_Message(Const TheMessage : AnsiString) : Boolean;
+    Property Client : TNetTcpIpClient read GetClient;
+    Function ClientRemoteAddr : AnsiString;
+    //
+    Property NetProtocolVersion : TNetProtocolVersion read FNetProtocolVersion;
+    //
+    Property IsMyselfServer : Boolean read FIsMyselfServer;
+    Property CreatedTime : TDateTime read FCreatedTime;
+    Property ClientAppVersion : AnsiString read FClientAppVersion write FClientAppVersion;
+    Procedure FinalizeConnection;
+  End;
 
   TNodeServerAddress = Record
     ip : AnsiString;
@@ -267,69 +327,16 @@ Type
     Property NetConnectionsActive : Boolean read FNetConnectionsActive write SetNetConnectionsActive;
   End;
 
-  TNetConnection = Class(TComponent)
+
+  TNetClient = Class(TNetConnection)
   private
-    FTcpIpClient : TNetTcpIpClient;
-    FRemoteOperationBlock : TOperationBlock;
-    FLastDataReceivedTS : Cardinal;
-    FLastDataSendedTS : Cardinal;
-    FClientBufferRead : TStream;
-    FNetLock : TCriticalSection;
-    FIsWaitingForResponse : Boolean;
-    FLastKnownTimestampDiff : Int64;
-    FIsMyselfServer : Boolean;
-    FClientPublicKey : TAccountKey;
-    FCreatedTime: TDateTime;
-    FClientAppVersion: AnsiString;
-    FDoFinalizeConnection : Boolean;
-    FNetProtocolVersion: TNetProtocolVersion;
-    FAlertedForNewProtocolAvailable : Boolean;
-    FHasReceivedData : Boolean;
-    FIsDownloadingBlocks : Boolean;
-    FRandomWaitSecondsSendHello : Cardinal;
-    function GetConnected: Boolean;
-    procedure SetConnected(const Value: Boolean);
-    procedure TcpClient_OnConnect(Sender: TObject);
-    procedure TcpClient_OnDisconnect(Sender: TObject);
-    Function DoSendAndWaitForResponse(operation: Word; RequestId: Integer; SendDataBuffer, ReceiveDataBuffer: TStream; MaxWaitTime : Cardinal; var HeaderData : TNetHeaderData) : Boolean;
-    procedure DoProcessBuffer;
-    Procedure DoProcess_Hello(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_Message(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_GetBlocks_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_GetBlocks_Response(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_GetOperationsBlock_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_NewBlock(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_AddOperations(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure SetClient(Const Value : TNetTcpIpClient);
-    Function ReadTcpClientBuffer(MaxWaitMiliseconds : Cardinal; var HeaderData : TNetHeaderData; BufferData : TStream) : Boolean;
-    Procedure DisconnectInvalidClient(ItsMyself : Boolean; Const why : AnsiString);
-    function GetClient: TNetTcpIpClient;
-  protected
-    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    Procedure Send(NetTranferType : TNetTransferType; operation, errorcode : Word; request_id : Integer; DataBuffer : TStream);
-    Procedure SendError(NetTranferType : TNetTransferType; operation, request_id : Integer; error_code : Integer; error_text : AnsiString);
+    FNetClientThread : TPCThread;
+    Procedure OnNetClientThreadTerminated(Sender : TObject);
   public
     Constructor Create(AOwner : TComponent); override;
     Destructor Destroy; override;
-    Function ConnectTo(ServerIP: String; ServerPort:Word) : Boolean;
-    Property Connected : Boolean read GetConnected write SetConnected;
-    Function Send_Hello(NetTranferType : TNetTransferType; request_id : Integer) : Boolean;
-    Function Send_NewBlockFound : Boolean;
-    Function Send_GetBlocks(StartAddress, quantity : Cardinal; var request_id : Cardinal) : Boolean;
-    Function Send_AddOperations(Operations : TOperationsHashTree) : Boolean;
-    Function Send_Message(Const TheMessage : AnsiString) : Boolean;
-    Property Client : TNetTcpIpClient read GetClient;
-    Function ClientRemoteAddr : AnsiString;
-    //
-    Property NetProtocolVersion : TNetProtocolVersion read FNetProtocolVersion;
-    //
-    Property IsMyselfServer : Boolean read FIsMyselfServer;
-    Property CreatedTime : TDateTime read FCreatedTime;
-    Property ClientAppVersion : AnsiString read FClientAppVersion write FClientAppVersion;
-    Procedure FinalizeConnection;
   End;
 
-  TNetClient = Class;
   TNetClientThread = Class(TPCThread)
   private
     FNetClient : TNetClient;
@@ -337,15 +344,6 @@ Type
     procedure BCExecute; override;
   public
     Constructor Create(NetClient : TNetClient; AOnTerminateThread : TNotifyEvent);
-  End;
-
-  TNetClient = Class(TNetConnection)
-  private
-    FNetClientThread : TNetClientThread;
-    Procedure OnNetClientThreadTerminated(Sender : TObject);
-  public
-    Constructor Create(AOwner : TComponent); override;
-    Destructor Destroy; override;
   End;
 
   TNetServerClient = Class(TNetConnection);
