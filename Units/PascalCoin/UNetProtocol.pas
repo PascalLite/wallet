@@ -3039,7 +3039,11 @@ begin
        (FNotifyOnNetConnectionsUpdated) Or
        (FNotifyOnNodeServersUpdated) Or 
        (FNotifyOnBlackListUpdated) then begin
+{$IFDEF CONSOLE}
+      SynchronizedNotify;
+{$ELSE}
       Synchronize(SynchronizedNotify);
+{$ENDIF}
     end;
     Sleep(10);
   end;
