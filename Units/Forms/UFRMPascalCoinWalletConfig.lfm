@@ -1,46 +1,47 @@
 object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
   Left = 462
-  Height = 479
+  Height = 560
   Top = 234
-  Width = 374
+  Width = 400
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Options'
-  ClientHeight = 479
-  ClientWidth = 374
+  ClientHeight = 560
+  ClientWidth = 400
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poOwnerFormCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.6.2.0'
   object Label1: TLabel
-    Left = 30
+    Left = 16
     Height = 13
-    Top = 335
+    Top = 411
     Width = 120
     Caption = 'Default fee for operation'
     ParentColor = False
   end
   object Label2: TLabel
-    Left = 30
+    Left = 16
     Height = 13
-    Top = 116
+    Top = 117
     Width = 98
     Caption = 'Internet Server Port'
     ParentColor = False
   end
-  object lblDefaultInternetServerPort: TLabel
-    Left = 248
+  object InternetServerPortDefault: TLabel
+    Left = 206
     Height = 13
     Top = 116
-    Width = 70
-    Caption = '(Default XXXX)'
+    Width = 62
+    Caption = 'Default XXXX'
+    Font.Color = clGray
     ParentColor = False
   end
   object Label3: TLabel
-    Left = 15
+    Left = 16
     Height = 13
     Top = 67
     Width = 60
@@ -48,7 +49,7 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
     ParentColor = False
   end
   object Label4: TLabel
-    Left = 90
+    Left = 92
     Height = 13
     Top = 90
     Width = 259
@@ -60,78 +61,79 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
     ParentFont = False
   end
   object Label5: TLabel
-    Left = 30
+    Left = 280
     Height = 13
-    Top = 176
-    Width = 73
-    Caption = 'JSON-RPC Port'
+    Top = 228
+    Width = 24
+    Caption = 'Port:'
     ParentColor = False
   end
   object lblDefaultJSONRPCMinerServerPort: TLabel
-    Left = 248
+    Left = 314
     Height = 13
-    Top = 176
-    Width = 70
-    Caption = '(Default XXXX)'
+    Top = 248
+    Width = 62
+    Caption = 'Default XXXX'
+    Font.Color = clGray
     ParentColor = False
   end
   object cbJSONRPCMinerServerActive: TCheckBox
-    Left = 15
+    Left = 16
     Height = 19
-    Top = 150
-    Width = 225
-    Caption = 'JSON-RPC Server Miner (TCP/IP, no HTTP)'
+    Top = 192
+    Width = 210
+    Caption = 'Enable mining server (TCP/IP, no HTTP)'
     TabOrder = 4
   end
   object ebDefaultFee: TEdit
-    Left = 170
+    Left = 152
     Height = 21
-    Top = 332
+    Top = 408
     Width = 56
     Alignment = taRightJustify
     TabOrder = 8
     Text = '0'
   end
   object cbSaveLogFiles: TCheckBox
-    Left = 15
+    Left = 16
     Height = 19
-    Top = 359
+    Top = 440
     Width = 78
     Caption = 'Save log file'
     OnClick = cbSaveLogFilesClick
     TabOrder = 9
   end
   object cbShowLogs: TCheckBox
-    Left = 15
+    Left = 16
     Height = 19
-    Top = 397
+    Top = 489
     Width = 68
     Caption = 'Show logs'
     TabOrder = 11
   end
   object bbOk: TBitBtn
-    Left = 184
+    Left = 225
     Height = 30
-    Top = 432
-    Width = 75
+    Top = 520
+    Width = 72
     Kind = bkOK
     OnClick = bbOkClick
     TabOrder = 14
   end
   object bbCancel: TBitBtn
-    Left = 274
+    Left = 312
     Height = 30
-    Top = 432
-    Width = 75
+    Top = 520
+    Width = 72
     Cancel = True
     Kind = bkCancel
     ModalResult = 2
     TabOrder = 15
   end
   object udInternetServerPort: TUpDown
-    Left = 226
+    Left = 184
     Height = 21
-    Top = 113
+    Top = 112
     Width = 16
     Associate = ebInternetServerPort
     Max = 25000
@@ -142,19 +144,19 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
     Wrap = False
   end
   object ebInternetServerPort: TEdit
-    Left = 170
+    Left = 128
     Height = 21
-    Top = 113
+    Top = 112
     Width = 56
     Alignment = taRightJustify
     TabOrder = 2
     Text = '4004'
   end
   object bbUpdatePassword: TBitBtn
-    Left = 15
+    Left = 16
     Height = 38
     Top = 14
-    Width = 336
+    Width = 368
     Caption = 'Wallet Password'
     Font.Color = clWindowText
     Font.Height = -13
@@ -219,25 +221,25 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
     TabOrder = 0
   end
   object ebMinerName: TEdit
-    Left = 90
+    Left = 92
     Height = 21
     Top = 64
-    Width = 261
+    Width = 292
     TabOrder = 1
     Text = 'ebMinerName'
   end
   object cbShowModalMessages: TCheckBox
-    Left = 170
+    Left = 152
     Height = 19
-    Top = 359
+    Top = 440
     Width = 127
     Caption = 'Show modal messages'
     TabOrder = 12
   end
   object udJSONRPCMinerServerPort: TUpDown
-    Left = 226
+    Left = 368
     Height = 21
-    Top = 173
+    Top = 224
     Width = 16
     Associate = ebJSONRPCMinerServerPort
     Max = 25000
@@ -248,22 +250,22 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
     Wrap = False
   end
   object ebJSONRPCMinerServerPort: TEdit
-    Left = 170
+    Left = 312
     Height = 21
-    Top = 173
+    Top = 224
     Width = 56
     Alignment = taRightJustify
     TabOrder = 5
     Text = '4009'
   end
   object gbMinerPrivateKey: TGroupBox
-    Left = 8
+    Left = 16
     Height = 121
-    Top = 200
-    Width = 334
+    Top = 272
+    Width = 368
     Caption = ' Miner Server Private Key: '
     ClientHeight = 103
-    ClientWidth = 330
+    ClientWidth = 364
     TabOrder = 7
     object rbGenerateANewPrivateKeyEachBlock: TRadioButton
       Left = 18
@@ -290,19 +292,19 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
       TabOrder = 2
     end
     object cbPrivateKeyToMine: TComboBox
-      Left = 43
+      Left = 48
       Height = 21
-      Top = 71
-      Width = 266
+      Top = 72
+      Width = 304
       ItemHeight = 13
       Style = csDropDownList
       TabOrder = 3
     end
   end
   object cbSaveDebugLogs: TCheckBox
-    Left = 31
+    Left = 39
     Height = 19
-    Top = 377
+    Top = 465
     Width = 118
     Caption = 'Save debug logs too'
     TabOrder = 10
@@ -310,7 +312,7 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
   object bbOpenDataFolder: TBitBtn
     Left = 16
     Height = 30
-    Top = 432
+    Top = 520
     Width = 131
     Caption = 'Open Data Folder'
     Glyph.Data = {
@@ -351,5 +353,94 @@ object FRMPascalCoinWalletConfig: TFRMPascalCoinWalletConfig
     }
     OnClick = bbOpenDataFolderClick
     TabOrder = 13
+  end
+  object Label6: TLabel
+    Left = 16
+    Height = 13
+    Top = 228
+    Width = 104
+    Caption = 'Mining server bind IP:'
+    ParentColor = False
+  end
+  object MiningServerIp: TEdit
+    Left = 128
+    Height = 21
+    Top = 224
+    Width = 144
+    TabOrder = 16
+    Text = 'MiningServerIp'
+  end
+  object RPCServerIp: TEdit
+    Left = 128
+    Height = 21
+    Top = 144
+    Width = 144
+    TabOrder = 17
+    Text = 'RPCServerIp'
+  end
+  object Label7: TLabel
+    Left = 16
+    Height = 13
+    Top = 148
+    Width = 94
+    Caption = 'RPC server bind IP:'
+    ParentColor = False
+  end
+  object RPCServerPortDefault: TLabel
+    Left = 314
+    Height = 13
+    Top = 168
+    Width = 62
+    Caption = 'Default XXXX'
+    Font.Color = clGray
+    ParentColor = False
+  end
+  object udRPCServerPort: TUpDown
+    Left = 368
+    Height = 21
+    Top = 144
+    Width = 16
+    Associate = RPCServerPort
+    Max = 25000
+    Min = 1
+    Position = 4003
+    TabOrder = 18
+    Thousands = False
+    Wrap = False
+  end
+  object RPCServerPort: TEdit
+    Left = 312
+    Height = 21
+    Top = 144
+    Width = 56
+    Alignment = taRightJustify
+    TabOrder = 19
+    Text = '4003'
+  end
+  object Label8: TLabel
+    Left = 280
+    Height = 13
+    Top = 148
+    Width = 24
+    Caption = 'Port:'
+    ParentColor = False
+  end
+  object lbRpcServerBindIpDefault: TLabel
+    Left = 128
+    Height = 13
+    Top = 168
+    Width = 86
+    Caption = 'Default 127.0.0.1'
+    Font.Color = clGray
+    ParentColor = False
+  end
+  object lbMiningServerBindIpDefault: TLabel
+    Left = 128
+    Height = 13
+    Top = 248
+    Width = 74
+    Caption = 'Default 0.0.0.0'
+    Font.Color = clGray
+    ParentColor = False
   end
 end
