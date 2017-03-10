@@ -33,7 +33,7 @@
         <Display Use="True" Value=""/>
       </local>
     </RunParams>
-    <Units Count="7">
+    <Units Count="8">
       <Unit0>
         <Filename Value="pascalcoin_daemon.pp"/>
         <IsPartOfProject Value="True"/>
@@ -62,6 +62,10 @@
         <Filename Value="Units\PascalCoin\URPC.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit6>
+      <Unit7>
+        <Filename Value="Units\PascalCoin\UNetProtocol.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit7>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

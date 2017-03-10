@@ -1815,11 +1815,11 @@ end;
 
 constructor TRPCServerThread.Create(bindIp : string; Port: Word);
 begin
+  inherited create(false);
   TLog.NewLog(ltInfo,ClassName,'Activating RPC-JSON Server on port '+inttostr(Port));
   FServerSocket := TTCPBlockSocket.create;
   FBindIp := bindIp;
   FPort := Port;
-  inherited create(false);
 end;
 
 destructor TRPCServerThread.Destroy;
