@@ -2,7 +2,7 @@ program pascalcoin_daemon;
 
 {$mode objfpc}{$H+}
 {$define usecthreads}
-{$apptype gui}
+{$APPTYPE CONSOLE}
 
 uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
