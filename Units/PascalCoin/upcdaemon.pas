@@ -56,7 +56,6 @@ Type
 
   TPCDaemonMapper = Class(TCustomDaemonMapper)
   private
-    FLog : TLog;
     procedure OnPascalCoinInThreadLog(logtype : TLogType; Time : TDateTime; AThreadID : Cardinal; Const sender, logtext : AnsiString);
   protected
     Procedure DoOnCreate; override;
@@ -342,9 +341,7 @@ begin
   inherited DoOnCreate;
   WriteLn('');
   WriteLn(formatDateTime('dd/mm/yyyy hh:nn:ss.zzz',now)+' Starting PascalCoin server');
-  FLog := TLog.Create(Nil);
-  FLog.OnInThreadNewLog:=@OnPascalCoinInThreadLog;
-  _FLog := FLog;
+  _FLog.OnInThreadNewLog:=@OnPascalCoinInThreadLog;
   D:=DaemonDefs.Add as TDaemonDef;
   D.DisplayName:='Pascal Coin Daemon';
   D.Name:='PascalCoinDaemon';
@@ -354,11 +351,11 @@ end;
 
 procedure TPCDaemonMapper.DoOnDestroy;
 begin
-  If Assigned(FLog) then begin
-    FLog.OnInThreadNewLog:=Nil;
-    FreeAndNil(FLog);
-  end;
   inherited DoOnDestroy;
 end;
 
+initialization
+  _FLog := TLog.Create(Nil);
+finalization
+  FreeAndNil(_FLog);
 end.
