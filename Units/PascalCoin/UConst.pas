@@ -112,7 +112,7 @@ Const
   CT_TRUE_FALSE : Array[Boolean] Of AnsiString = ('FALSE','TRUE');
 
   // App Params
-  CT_SETTINGS_FILENAME = 'pascalcoin_daemon.ini';
+  CT_SETTINGS_FILENAME = 'pascallite.ini';
 
   CT_PARAM_GridAccountsStream = 'GridAccountsStream';
   CT_PARAM_GridAccountsPos = 'GridAccountsPos';
