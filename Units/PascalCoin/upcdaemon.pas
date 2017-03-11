@@ -155,7 +155,9 @@ var
         finally
           ECPK.Free;
         end;
-      end;
+      end else begin
+        FAppParams.SetValue(CT_PARAM_MINER_B58_PUBLICKEY, '');
+      end
     end else begin
       // pubkey is mine?
       if (FWalletKeys.IndexOfAccountKey(pubkey)<0) then begin
@@ -164,11 +166,15 @@ var
     end;
 
     i := FWalletKeys.IndexOfAccountKey(pubkey);
-    s := Trim(FAppParams.GetValue(CT_PARAM_MINER_NAME, ''));
+    if FAppParams.IsNil(CT_PARAM_MINER_NAME) then begin
+      FAppParams.SetValue(CT_PARAM_MINER_NAME, 'TIME');
+    end;
+    s := Trim(FAppParams.GetValue(CT_PARAM_MINER_NAME, 'TIME'));
     if (SameText(s,'TIME')) then begin
       s := FormatDateTime('yyyy-mm-dd hh:nn',Now);
       TLog.NewLog(ltInfo,ClassName,'Generated new miner name: '+s);
     end;
+
     maxconnections := FAppParams.GetValue(CT_PARAM_MINING_SERVER_MAX_CONNECTIONS, 1000);
     TLog.NewLog(ltinfo,ClassName,Format('Activating RPC Miner Server on %s:%d, name "%s", max conections %d and public key %s',
       [ip, port, s, maxconnections, TAccountComp.AccountKeyToExport(pubkey)]));
