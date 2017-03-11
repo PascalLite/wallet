@@ -56,6 +56,8 @@ Type
     procedure SetIniFileName(const Value: AnsiString);
     procedure SetLogFileName(const Value: AnsiString);
     Function GetLogFileName : AnsiString;
+  private
+    procedure OnThreadTerminated(sender : TObject);
   protected
     Function IsValidClientIP(Const clientIp : String; clientPort : Word) : Boolean;
     Procedure AddRPCLog(Const Sender : String; Const Message : String);
@@ -79,11 +81,14 @@ Type
     FServerSocket:TTCPBlockSocket;
     FPort : Word;
     FBindIp : String;
+    FOnTerminate : TNotifyEvent;
   protected
     procedure BCExecute; override;
   public
     Constructor Create(bindIp : string; Port : Word);
     Destructor Destroy; Override;
+
+    property OnTerminate : TNotifyEvent write FOnTerminate;
   End;
 
   { TRPCProcess }
@@ -127,12 +132,18 @@ begin
   Result := FCallsCounter;
 end;
 
+procedure TRPCServer.OnThreadTerminated(sender : TObject);
+begin
+  FActive := False;
+end;
+
 procedure TRPCServer.SetActive(AValue: Boolean);
 begin
   if FActive=AValue then Exit;
   FActive:=AValue;
   if (FActive) then begin
     FRPCServerThread := TRPCServerThread.Create(FBindIp, FPort);
+    FRPCServerThread.OnTerminate := Self.OnThreadTerminated;
   end else begin
     FRPCServerThread.Terminate;
     FRPCServerThread.WaitFor;
@@ -1789,27 +1800,31 @@ procedure TRPCServerThread.BCExecute;
 var
   ClientSock:TSocket;
 begin
-  with FServerSocket do begin
-    CreateSocket;
-    SetLinger(true, 10000);
-    Bind(FBindIp, Inttostr(FPort));
-    Listen;
+  FServerSocket.CreateSocket;
+  FServerSocket.SetLinger(true, 10000);
+  FServerSocket.Bind(FBindIp, Inttostr(FPort));
+  if FServerSocket.LastError = 0 then begin
+    FServerSocket.Listen;
     repeat
-      if terminated then break;
+      if Terminated then break;
       Try
-        if canread(1000) then begin
-          ClientSock:=accept;
-          if lastError=0 then begin
-            TRPCProcess.create(ClientSock);
+        if FServerSocket.CanRead(1000) then begin
+          ClientSock := FServerSocket.Accept;
+          if FServerSocket.lastError = 0 then begin
+            TRPCProcess.Create(ClientSock);
           end;
         end;
       Except
         On E:Exception do begin
-          TLog.NewLog(ltError,Classname,'Error '+E.ClassName+':'+E.Message);
+          TLog.NewLog(ltError, Classname, 'Error ' + E.ClassName + ':' + E.Message);
         end;
       End;
       sleep(1);
     until false;
+  end;
+
+  if Assigned(FOnTerminate) then begin
+    FOnTerminate(Self);
   end;
 end;
 
