@@ -82,6 +82,7 @@ type
     Property Connected : Boolean read GetConnected;
     Procedure Disconnect;
     Function Connect : Boolean;
+    function ConnectNonBlocking(timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
     //
     Function WaitForData(WaitMilliseconds : Integer) : Boolean;
     //
@@ -231,6 +232,63 @@ begin
     else Result := FRemoteHost+':'+inttostr(FRemotePort);
     {$ENDIF}
   end else Result := 'NIL';
+end;
+
+function TNetTcpIpClient.ConnectNonBlocking(timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
+var
+  lastError : Cardinal;
+  secondsElapsed : Cardinal;
+  checkFlag : Boolean;
+  previousState : Boolean;
+begin
+  {$IFDEF DelphiSockets}
+  FSocketError := 0;
+  Result := FTcpBlockSocket.Connect;
+  {$ENDIF}
+  {$IFDEF Synapse}
+  Try
+    Result := false;
+
+    checkFlag := Assigned(stopFlag);
+
+    previousState := FTcpBlockSocket.NonBlockMode;
+    FTcpBlockSocket.NonBlockMode := true;
+    FTcpBlockSocket.Connect(FRemoteHost, IntToStr(FRemotePort));
+    lastError := FTcpBlockSocket.LastError;
+    // EINPROGRESS = 115
+    if lastError = 0 then begin
+      FConnected := true;
+    end else if lastError = 115 then begin
+      FConnected := false;
+      for secondsElapsed := 0 to timeoutSeconds do begin
+        if FTcpBlockSocket.CanWrite(1000) then begin
+          FConnected := true;
+          break;
+        end;
+        if checkFlag and stopFlag^then begin
+          break;
+        end;
+      end;
+    end;
+    FTcpBlockSocket.NonBlockMode := previousState;
+
+    if FConnected then begin
+      FTcpBlockSocket.GetSins;
+      FConnected := (FTcpBlockSocket.GetRemoteSinIP <> '') and (FTcpBlockSocket.GetRemoteSinPort <> 0);
+    end;
+
+    if FConnected and Assigned(FOnConnect) then begin
+       FOnConnect(Self);
+    end else TLog.NewLog(ltdebug,Classname,'Cannot connect to a server at: '+ClientRemoteAddr+' Reason: '+FTcpBlockSocket.GetErrorDescEx);
+  Except
+    On E:Exception do begin
+      FSocketError := FTcpBlockSocket.LastError;
+      TLog.NewLog(lterror,ClassName,'Error Connecting to '+ClientRemoteAddr+': '+FTcpBlockSocket.GetErrorDescEx);
+      Disconnect;
+    end;
+  End;
+  Result := FConnected;
+  {$ENDIF}
 end;
 
 function TNetTcpIpClient.Connect: Boolean;
