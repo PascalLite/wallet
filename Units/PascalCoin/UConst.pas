@@ -105,7 +105,7 @@ Const
   CT_Op_Changekey = $02;
   CT_Op_Recover = $03;
 
-  CT_ClientAppVersion : AnsiString = {$IFDEF PRODUCTION}'1.4.3'{$ELSE}{$IFDEF TESTNET}'TESTNET'{$ELSE}{$ENDIF}{$ENDIF};
+  CT_ClientAppVersion : AnsiString = {$IFDEF PRODUCTION}'1.4.4'{$ELSE}{$IFDEF TESTNET}'TESTNET'{$ELSE}{$ENDIF}{$ENDIF};
 
   CT_Discover_IPs =  '54.201.174.69;pascallite.ddns.net;pascallite2.ddns.net;pascallite3.ddns.net;pascallite.dynamic-dns.net;pascallite2.dynamic-dns.net;pascallite3.dynamic-dns.net';
 
