@@ -46,6 +46,8 @@ type
     function GetValue(parameter : AnsiString; const default :  Boolean): Boolean; overload;
     function GetValue(parameter : AnsiString; const default :  Integer): Integer; overload;
     function GetValue(parameter : AnsiString; const default :  Int64): Int64; overload;
+
+    property FileName : AnsiString read FFileName;
   End;
 
 const
