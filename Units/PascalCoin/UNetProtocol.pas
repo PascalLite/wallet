@@ -82,67 +82,7 @@ Type
     error_text : AnsiString;
   end;
 
-  TNetConnection = Class(TComponent)
-  private
-    FTcpIpClient : TNetTcpIpClient;
-    FRemoteOperationBlock : TOperationBlock;
-    FLastDataReceivedTS : Cardinal;
-    FLastDataSendedTS : Cardinal;
-    FClientBufferRead : TStream;
-    FNetLock : TCriticalSection;
-    FIsWaitingForResponse : Boolean;
-    FLastKnownTimestampDiff : Int64;
-    FIsMyselfServer : Boolean;
-    FClientPublicKey : TAccountKey;
-    FCreatedTime: TDateTime;
-    FClientAppVersion: AnsiString;
-    FDoFinalizeConnection : Boolean;
-    FNetProtocolVersion: TNetProtocolVersion;
-    FAlertedForNewProtocolAvailable : Boolean;
-    FHasReceivedData : Boolean;
-    FIsDownloadingBlocks : Boolean;
-    FRandomWaitSecondsSendHello : Cardinal;
-    function GetConnected: Boolean;
-    procedure SetConnected(const Value: Boolean);
-    procedure TcpClient_OnConnect(Sender: TObject);
-    procedure TcpClient_OnDisconnect(Sender: TObject);
-    Function DoSendAndWaitForResponse(operation: Word; RequestId: Integer; SendDataBuffer, ReceiveDataBuffer: TStream; MaxWaitTime : Cardinal; var HeaderData : TNetHeaderData) : Boolean;
-    procedure DoProcessBuffer;
-    Procedure DoProcess_Hello(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_Message(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_GetBlocks_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_GetBlocks_Response(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_GetOperationsBlock_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_NewBlock(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure DoProcess_AddOperations(HeaderData : TNetHeaderData; DataBuffer: TStream);
-    Procedure SetClient(Const Value : TNetTcpIpClient);
-    Function ReadTcpClientBuffer(MaxWaitMiliseconds : Cardinal; var HeaderData : TNetHeaderData; BufferData : TStream) : Boolean;
-    Procedure DisconnectInvalidClient(ItsMyself : Boolean; Const why : AnsiString);
-    function GetClient: TNetTcpIpClient;
-  protected
-    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    Procedure Send(NetTranferType : TNetTransferType; operation, errorcode : Word; request_id : Integer; DataBuffer : TStream);
-    Procedure SendError(NetTranferType : TNetTransferType; operation, request_id : Integer; error_code : Integer; error_text : AnsiString);
-  public
-    Constructor Create(AOwner : TComponent); override;
-    Destructor Destroy; override;
-    Function ConnectTo(ServerIP: String; ServerPort:Word) : Boolean;
-    Property Connected : Boolean read GetConnected write SetConnected;
-    Function Send_Hello(NetTranferType : TNetTransferType; request_id : Integer) : Boolean;
-    Function Send_NewBlockFound : Boolean;
-    Function Send_GetBlocks(StartAddress, quantity : Cardinal; var request_id : Cardinal) : Boolean;
-    Function Send_AddOperations(Operations : TOperationsHashTree) : Boolean;
-    Function Send_Message(Const TheMessage : AnsiString) : Boolean;
-    Property Client : TNetTcpIpClient read GetClient;
-    Function ClientRemoteAddr : AnsiString;
-    //
-    Property NetProtocolVersion : TNetProtocolVersion read FNetProtocolVersion;
-    //
-    Property IsMyselfServer : Boolean read FIsMyselfServer;
-    Property CreatedTime : TDateTime read FCreatedTime;
-    Property ClientAppVersion : AnsiString read FClientAppVersion write FClientAppVersion;
-    Procedure FinalizeConnection;
-  End;
+  TNetConnection = Class;
 
   TNodeServerAddress = Record
     ip : AnsiString;
@@ -327,16 +267,69 @@ Type
     Property NetConnectionsActive : Boolean read FNetConnectionsActive write SetNetConnectionsActive;
   End;
 
-
-  TNetClient = Class(TNetConnection)
+  TNetConnection = Class(TComponent)
   private
-    FNetClientThread : TPCThread;
-    Procedure OnNetClientThreadTerminated(Sender : TObject);
+    FTcpIpClient : TNetTcpIpClient;
+    FRemoteOperationBlock : TOperationBlock;
+    FLastDataReceivedTS : Cardinal;
+    FLastDataSendedTS : Cardinal;
+    FClientBufferRead : TStream;
+    FNetLock : TCriticalSection;
+    FIsWaitingForResponse : Boolean;
+    FLastKnownTimestampDiff : Int64;
+    FIsMyselfServer : Boolean;
+    FClientPublicKey : TAccountKey;
+    FCreatedTime: TDateTime;
+    FClientAppVersion: AnsiString;
+    FDoFinalizeConnection : Boolean;
+    FNetProtocolVersion: TNetProtocolVersion;
+    FAlertedForNewProtocolAvailable : Boolean;
+    FHasReceivedData : Boolean;
+    FIsDownloadingBlocks : Boolean;
+    FRandomWaitSecondsSendHello : Cardinal;
+    function GetConnected: Boolean;
+    procedure SetConnected(const Value: Boolean);
+    procedure TcpClient_OnConnect(Sender: TObject);
+    procedure TcpClient_OnDisconnect(Sender: TObject);
+    Function DoSendAndWaitForResponse(operation: Word; RequestId: Integer; SendDataBuffer, ReceiveDataBuffer: TStream; MaxWaitTime : Cardinal; var HeaderData : TNetHeaderData) : Boolean;
+    procedure DoProcessBuffer;
+    Procedure DoProcess_Hello(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_Message(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_GetBlocks_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_GetBlocks_Response(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_GetOperationsBlock_Request(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_NewBlock(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure DoProcess_AddOperations(HeaderData : TNetHeaderData; DataBuffer: TStream);
+    Procedure SetClient(Const Value : TNetTcpIpClient);
+    Function ReadTcpClientBuffer(MaxWaitMiliseconds : Cardinal; var HeaderData : TNetHeaderData; BufferData : TStream) : Boolean;
+    Procedure DisconnectInvalidClient(ItsMyself : Boolean; Const why : AnsiString);
+    function GetClient: TNetTcpIpClient;
+  protected
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    Procedure Send(NetTranferType : TNetTransferType; operation, errorcode : Word; request_id : Integer; DataBuffer : TStream);
+    Procedure SendError(NetTranferType : TNetTransferType; operation, request_id : Integer; error_code : Integer; error_text : AnsiString);
   public
     Constructor Create(AOwner : TComponent); override;
     Destructor Destroy; override;
+    Function ConnectTo(ServerIP: String; ServerPort:Word; stop : PBoolean = Nil) : Boolean;
+    Property Connected : Boolean read GetConnected write SetConnected;
+    Function Send_Hello(NetTranferType : TNetTransferType; request_id : Integer) : Boolean;
+    Function Send_NewBlockFound : Boolean;
+    Function Send_GetBlocks(StartAddress, quantity : Cardinal; var request_id : Cardinal) : Boolean;
+    Function Send_AddOperations(Operations : TOperationsHashTree) : Boolean;
+    Function Send_Message(Const TheMessage : AnsiString) : Boolean;
+    Property Client : TNetTcpIpClient read GetClient;
+    Function ClientRemoteAddr : AnsiString;
+    //
+    Property NetProtocolVersion : TNetProtocolVersion read FNetProtocolVersion;
+    //
+    Property IsMyselfServer : Boolean read FIsMyselfServer;
+    Property CreatedTime : TDateTime read FCreatedTime;
+    Property ClientAppVersion : AnsiString read FClientAppVersion write FClientAppVersion;
+    Procedure FinalizeConnection;
   End;
 
+  TNetClient = Class;
   TNetClientThread = Class(TPCThread)
   private
     FNetClient : TNetClient;
@@ -344,6 +337,15 @@ Type
     procedure BCExecute; override;
   public
     Constructor Create(NetClient : TNetClient; AOnTerminateThread : TNotifyEvent);
+  End;
+
+  TNetClient = Class(TNetConnection)
+  private
+    FNetClientThread : TNetClientThread;
+    Procedure OnNetClientThreadTerminated(Sender : TObject);
+  public
+    Constructor Create(AOwner : TComponent); override;
+    Destructor Destroy; override;
   End;
 
   TNetServerClient = Class(TNetConnection);
@@ -725,7 +727,6 @@ begin
     FNetConnections.UnlockList;
   End;
 
-
   FNetClientsDestroyThread.WaitForTerminatedAllConnections;
   FNetClientsDestroyThread.Terminate;
   FNetClientsDestroyThread.WaitFor;
@@ -740,6 +741,7 @@ begin
     FreeAndNil(FNodeServers);
   end;
   FreeAndNil(FNetworkAdjustedTime);
+
   l := FBlackList.LockList;
   try
     while (l.Count>0) do DeleteNetClient(l,l.Count-1);
@@ -747,6 +749,7 @@ begin
     FBlackList.UnlockList;
     FreeAndNil(FBlackList);
   end;
+
   FreeAndNil(FNetConnections);
   FreeAndNil(FNodePrivateKey);
   FNetDataNotifyEventsThread.Terminate;
@@ -754,6 +757,7 @@ begin
   FreeAndNil(FNetDataNotifyEventsThread);
   SetLength(FFixedServers,0);
   FreeAndNil(FRegisteredRequests);
+
   inherited;
   if (_NetData=Self) then _NetData := Nil;
   TLog.NewLog(ltInfo,ClassName,'TNetData.Destroy END');
@@ -1555,7 +1559,7 @@ begin
   end else Result := 'NIL';
 end;
 
-function TNetConnection.ConnectTo(ServerIP: String; ServerPort: Word) : Boolean;
+function TNetConnection.ConnectTo(ServerIP: String; ServerPort: Word; stop : PBoolean = Nil) : Boolean;
 Var Pnsa : PNodeServerAddress;
   lns : TList;
   i : Integer;
@@ -1578,7 +1582,12 @@ begin
     Client.RemotePort := ServerPort;
     TLog.NewLog(ltDebug,Classname,'Trying to connect to a server at: '+ClientRemoteAddr);
     TNetData.NetData.NotifyNetConnectionUpdated;
-    Result := Client.Connect;
+
+    if not Assigned(stop) then begin
+      Result := Client.Connect;
+    end else begin
+      Result := Client.ConnectNonBlocking(15, stop);
+    end;
   Finally
     FNetLock.Release;
   End;
@@ -2840,8 +2849,6 @@ Var NC : TNetClient;
   i : Integer;
   Pnsa : PNodeServerAddress;
 begin
-  if Terminated then exit;
-
   TLog.NewLog(ltInfo,Classname,'Starting discovery of connection '+FNodeServerAddress.ip+':'+InttoStr(FNodeServerAddress.port));
   Pnsa := Nil;
   DebugStep := 'Locking list';
@@ -2860,23 +2867,17 @@ begin
     TNetData.NetData.FNodeServers.UnlockList;
   end;
   DebugStep := 'Synchronizing notify';
-  if Terminated then exit;
   TNetData.NetData.NotifyNodeServersUpdated;
   // Try to connect
   ok := false;
   DebugStep := 'Trying to connect';
-  if Terminated then exit;
   NC := TNetClient.Create(Nil);
   Try
     DebugStep := 'Connecting';
-    If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port) then begin
-      if Terminated then exit;
-      Sleep(500);
+    If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port, @Terminated) then begin
       DebugStep := 'Is connected now?';
-      if Terminated then exit;
-      ok :=NC.Connected;
+      ok := NC.Connected;
     end;
-    if Terminated then exit;
   Finally
     if not ok then begin
       DebugStep := 'Destroying non connected';
@@ -2884,7 +2885,6 @@ begin
     end;
   End;
   DebugStep := 'Synchronizing notify final';
-  if Terminated then exit;
   TNetData.NetData.NotifyNodeServersUpdated;
 end;
 
@@ -3035,9 +3035,9 @@ procedure TNetDataNotifyEventsThread.BCExecute;
 begin
   while (not Terminated) do begin
     if (FNotifyOnReceivedHelloMessage) Or
-       (FNotifyOnStatisticsChanged) Or 
+       (FNotifyOnStatisticsChanged) Or
        (FNotifyOnNetConnectionsUpdated) Or
-       (FNotifyOnNodeServersUpdated) Or 
+       (FNotifyOnNodeServersUpdated) Or
        (FNotifyOnBlackListUpdated) then begin
 {$IFDEF CONSOLE}
       SynchronizedNotify;
