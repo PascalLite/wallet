@@ -99,7 +99,7 @@ var
     FRPC := TRPCServer.Create(ip, port);
     FRPC.WalletKeys := FWalletKeys;
     FRPC.Active := true;
-    TLog.NewLog(ltInfo, ClassName, 'RPC server is active on port ' + IntToStr(port));
+    TLog.NewLog(ltInfo, ClassName, Format('RPC server is listening on %s:%d', [ip, port]));
     If FAppParams.GetValue(CT_PARAM_RPC_SAVELOGS, true) then begin
       FAppParams.SetValue(CT_PARAM_RPC_SAVELOGS, true);
       FRPC.LogFileName := TFolderHelper.GetPascalCoinDataFolder + PathDelim + 'pascalcoin_rpc.log';
@@ -245,6 +245,7 @@ constructor TPCDaemonThread.Create;
 begin
   inherited Create(True);
   FAppParams := TAppParams.Create(Nil);
+  TLog.NewLog(ltinfo, Classname, Format('Loading config %s', [FAppParams.FileName]));
   If FAppParams.GetValue(CT_PARAM_SaveLogFiles, true) then begin
     _FLog.SaveTypes := CT_TLogTypes_ALL;
     _FLog.FileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascalcoin_'+FormatDateTime('yyyymmddhhnn',Now)+'.log';
