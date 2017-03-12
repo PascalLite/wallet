@@ -319,11 +319,11 @@ begin
 end;
 
 procedure TFRMWalletKeys.bbImportPublicKeyClick(Sender: TObject);
-var s : String;
- raw : AnsiString;
- EC : TECPrivateKey;
- account : TAccountKey;
- errors : AnsiString;
+var
+  s : String;
+  raw : AnsiString;
+  account : TAccountKey;
+  errors : AnsiString;
 begin
   CheckIsWalletKeyValidPassword;
   if Not Assigned(WalletKeys) then exit;
@@ -489,8 +489,9 @@ begin
 end;
 
 procedure TFRMWalletKeys.UpdateWalletKeys;
-Var lasti,i : Integer;
-  selected_wk,wk : TWalletKey;
+var
+  lasti,i : Integer;
+  wk : TWalletKey;
   s : AnsiString;
 begin
   GetSelectedWalletKeyAndIndex(wk,lasti);

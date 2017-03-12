@@ -233,7 +233,7 @@ var
   x, n: integer;
   resultcode: integer;
   inputdata : TBytes;
-  js,jsresult : TPCJSONData;
+  js : TPCJSONData;
   jsonobj,jsonresponse : TPCJSONObject;
   errNum : Integer; errDesc : String;
   jsonrequesttxt,
@@ -727,8 +727,8 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
   // It assumes that account_number,account_last_n_operation and account_pubkey are correct
   Function CreateOperationChangeKey(account_number, account_last_n_operation : Cardinal; const account_pubkey, new_pubkey : TAccountKey; fee : UInt64; RawPayload : TRawBytes; Const Payload_method, EncodePwd : AnsiString) : TOpChangeKey;
   // "payload_method" types: "none","dest"(default),"sender","aes"(must provide "pwd" param)
-  var i : Integer;
-    errors : AnsiString;
+  var
+    i : Integer;
     f_raw : TRawBytes;
   Begin
     Result := Nil;
@@ -854,7 +854,6 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
     acc : TAccount;
     i, ian : Integer;
     errors : AnsiString;
-    opr : TOperationResume;
     accountsnumber : TOrderedCardinalList;
     operationsht : TOperationsHashTree;
     OperationsResumeList : TOperationsResumeList;

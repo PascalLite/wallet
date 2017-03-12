@@ -1081,9 +1081,9 @@ Const CT_LogSender = 'GetNewBlockChainFromClient';
   End;
 
   Function GetNewBank(start_block : Int64) : Boolean;
-  Var BlocksList : TList;
+  var
+    BlocksList : TList;
     i : Integer;
-    tempfolder : AnsiString;
     OpComp,OpExecute : TPCOperationsComp;
     newBlock : TBlockAccount;
     errors : AnsiString;
@@ -1162,9 +1162,8 @@ Const CT_LogSender = 'GetNewBlockChainFromClient';
     end;
   End;
 
-var rid : Cardinal;
-  bufferdata : TMemoryStream;
-  headerdata : TNetHeaderData;
+var
+  rid : Cardinal;
   my_op, client_op : TOperationBlock;
 begin
   // Protection against discovering servers...
@@ -1400,7 +1399,7 @@ begin
 end;
 
 function TNetData.PendingRequest(Sender: TNetConnection; var requests_data : AnsiString): Integer;
-Var P : PNetRequestRegistered;
+var
   i : Integer;
   l : TList;
 begin
@@ -2073,16 +2072,16 @@ procedure TNetConnection.DoProcess_Hello(HeaderData: TNetHeaderData; DataBuffer:
       Result := true;
     end;
   End;
-var op, myLastOp : TPCOperationsComp;
-    errors : AnsiString;
-    connection_has_a_server : Word;
-    i,c : Integer;
-    nsa : TNodeServerAddress;
-    rid : Cardinal;
-    connection_ts : Cardinal;
-   Duplicate : TNetConnection;
-   RawAccountKey : TRawBytes;
-   other_version : AnsiString;
+var
+  op : TPCOperationsComp;
+  errors : AnsiString;
+  connection_has_a_server : Word;
+  i,c : Integer;
+  nsa : TNodeServerAddress;
+  connection_ts : Cardinal;
+  Duplicate : TNetConnection;
+  RawAccountKey : TRawBytes;
+  other_version : AnsiString;
 Begin
   op := TPCOperationsComp.Create(Nil);
   try
@@ -2372,17 +2371,12 @@ begin
 end;
 
 function TNetConnection.ReadTcpClientBuffer(MaxWaitMiliseconds: Cardinal; var HeaderData: TNetHeaderData; BufferData: TStream): Boolean;
-var buffer : Array[1..4096] of byte;
+var
   auxstream : TMemoryStream;
   tc : Cardinal;
   last_bytes_read, t_bytes_read : Int64;
-  //
-  operation : Word;
-  request_id : Integer;
   IsValidHeaderButNeedMoreData : Boolean;
   deletedBytes : Int64;
-
-
 begin
   t_bytes_read := 0;
   Result := false;
@@ -2565,8 +2559,9 @@ begin
 end;
 
 function TNetConnection.Send_AddOperations(Operations : TOperationsHashTree) : Boolean;
-Var data : TMemoryStream;
-  c1,c2,request_id : Cardinal;
+var
+  data : TMemoryStream;
+  c1, request_id : Cardinal;
   i : Integer;
   optype : Byte;
 begin
@@ -2989,8 +2984,8 @@ end;
 { TThreadGetNewBlockChainFromClient }
 
 procedure TThreadGetNewBlockChainFromClient.BCExecute;
-Var i : Integer;
-  nsa : TNodeServerAddress;
+var
+  i : Integer;
   candidates : TList;
   lop : TOperationBlock;
   netConnectionsList : TList;

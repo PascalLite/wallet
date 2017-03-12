@@ -174,12 +174,14 @@ begin
 end;
 
 function TJSONRPCTcpIpClient.DoProcessBuffer(SenderThread : TPCThread; MaxWaitMiliseconds : Cardinal; DeleteBufferOnExit : Boolean; var ResponseMethod : String; var jsonObject : TPCJSONObject) : Boolean;
-var last_bytes_read : Integer;
+var
+  last_bytes_read : Integer;
   jsonData : TPCJSONData;
   tc : Cardinal;
   ms : TMemoryStream;
-  i,lasti : Integer;
+  lasti : Integer;
   continue : Boolean;
+
   procedure FlushBufferPendingMessages(doSearchId : Boolean; idValue : Integer);
   var l : TList;
     i : Integer;
@@ -341,11 +343,11 @@ begin
 end;
 
 procedure TJSONRPCTcpIpClient.SendJSONRPCMethod(const method: String; params: TPCJSONObject; const id: Variant);
-Var json : TPCJSONObject;
+var
+  json : TPCJSONObject;
   stream : TMemoryStream;
   b : Byte;
   P : PPendingResponseMessage;
-  l : TList;
 begin
   json := TPCJSONObject.Create;
   Try

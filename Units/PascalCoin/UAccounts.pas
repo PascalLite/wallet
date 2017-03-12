@@ -278,9 +278,9 @@ end;
 Const CT_Base58 : AnsiString = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 class function TAccountComp.AccountKeyToExport(const account: TAccountKey): AnsiString;
-Var raw : TRawBytes;
+var
+  raw : TRawBytes;
   BN, BNMod, BNDiv : TBigNum;
-  i : Integer;
 begin
   Result := '';
   raw := AccountKey2RawString(account);
@@ -328,8 +328,6 @@ Var raw : TRawBytes;
   BN, BNAux, BNBase : TBigNum;
   i,j : Integer;
   s1,s2 : AnsiString;
-  i64 : Int64;
-  b : Byte;
 begin
   result := false;
   errors := 'Invalid length';
@@ -389,9 +387,9 @@ begin
 end;
 
 class function TAccountComp.AccountPublicKeyExport(const account: TAccountKey): AnsiString;
-Var raw : TRawBytes;
+var
+  raw : TRawBytes;
   BN, BNMod, BNDiv : TBigNum;
-  i : Integer;
 begin
   Result := '';
   raw := AccountKey2RawString(account);
@@ -415,12 +413,11 @@ end;
 class function TAccountComp.AccountPublicKeyImport(
   const HumanReadable: AnsiString; var account: TAccountKey;
   var errors: AnsiString): Boolean;
-Var raw : TRawBytes;
+var
+  raw : TRawBytes;
   BN, BNAux, BNBase : TBigNum;
   i,j : Integer;
   s1,s2 : AnsiString;
-  i64 : Int64;
-  b : Byte;
 begin
   result := false;
   errors := 'Invalid length';
@@ -468,9 +465,8 @@ begin
 end;
 
 class function TAccountComp.AccountTxtNumberToAccountNumber(const account_txt_number: AnsiString; var account_number: Cardinal): Boolean;
-Var i : Integer;
-  char1 : AnsiChar;
-  char2 : AnsiChar;
+var
+  i : Integer;
   an,rn,anaux : Int64;
 begin
   Result := false;
@@ -538,7 +534,6 @@ begin
 end;
 
 class function TAccountComp.IsValidAccountKey(account: TAccountKey; var errors : AnsiString): Boolean;
-Var _a, _b: AnsiString;
 begin
   errors := '';
   case account.EC_OpenSSL_NID of
@@ -1055,7 +1050,8 @@ begin
 end;
 
 function TPCSafeBoxTransaction.Commit(accountkey: TAccountKey; reward: UInt64; timestamp: Cardinal; compact_target: Cardinal; proof_of_work: AnsiString; var errors : AnsiString) : Boolean;
-Var i,j : Integer;
+var
+  i : Integer;
   B : TBlockAccount;
   Pa : PAccount;
 begin
@@ -1126,8 +1122,8 @@ begin
 end;
 
 function TPCSafeBoxTransaction.GetInternalAccount(account_number: Cardinal): PAccount;
-Var i :Integer;
-  P : PAccount;
+var
+  i : Integer;
 begin
   if FOrderedList.Find(account_number,i) then Result := PAccount(FOrderedList.FList[i])
   else begin
@@ -1152,8 +1148,7 @@ begin
 end;
 
 function TPCSafeBoxTransaction.TransferAmount(sender, target, n_operation : Cardinal; amount, fee: UInt64; var errors: AnsiString): Boolean;
-Var
-  intSender, intTarget : Integer;
+var
   PaccSender, PaccTarget : PAccount;
 begin
   Result := false;
@@ -1207,7 +1202,7 @@ begin
 end;
 
 function TPCSafeBoxTransaction.UpdateAccountkey(account_number, n_operation: Cardinal; accountkey: TAccountKey; fee: UInt64; var errors: AnsiString): Boolean;
-Var intAccount : Integer;
+var
   P : PAccount;
 begin
   Result := false;
@@ -1349,8 +1344,9 @@ begin
 end;
 
 procedure TOrderedAccountKeysList.AddAccounts(const AccountKey: TAccountKey; accounts: array of Cardinal);
-Var P : POrderedAccountKeyList;
-  i,i2 : Integer;
+var
+  P : POrderedAccountKeyList;
+  i : Integer;
 begin
   if Find(AccountKey,i) then begin
     P :=  POrderedAccountKeyList(FOrderedAccountKeysList[i]);
@@ -1482,8 +1478,9 @@ begin
 end;
 
 procedure TOrderedAccountKeysList.RemoveAccountKey(const AccountKey: TAccountKey);
-Var P : POrderedAccountKeyList;
-  i,j : Integer;
+var
+  P : POrderedAccountKeyList;
+  i : Integer;
 begin
   if Not Find(AccountKey,i) then exit; // Nothing to do
   P :=  POrderedAccountKeyList(FOrderedAccountKeysList[i]);

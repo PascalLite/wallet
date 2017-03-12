@@ -142,8 +142,8 @@ uses
 { TFRMOperation }
 
 procedure TFRMOperation.actExecuteExecute(Sender: TObject);
-Var errors : AnsiString;
-  P : PAccount;
+var
+  errors : AnsiString;
   i,iAcc : Integer;
   wk : TWalletKey;
   ops : TOperationsHashTree;
@@ -719,13 +719,13 @@ begin
 end;
 
 function TFRMOperation.UpdatePayload(Const SenderAccount : TAccount; var errors : AnsiString) : Boolean;
-Var payload_u : AnsiString;
+var
+  payload_u : AnsiString;
   payload_encrypted : TRawBytes;
   account : TAccount;
   dest_account_number : Cardinal;
   i : Integer;
   valid : Boolean;
-  wk : TWalletKey;
 begin
   valid := false;
   payload_encrypted := '';
