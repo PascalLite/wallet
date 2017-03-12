@@ -27,7 +27,6 @@ type
   TAppParams = Class(TComponent)
   private
     FIniFile : TIniFile;
-    FParams : TList;
     FFileName: AnsiString;
     function GetParam(parameter : AnsiString) : AnsiString;
   public
@@ -66,8 +65,6 @@ end;
 constructor TAppParams.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-
-  FParams := TList.Create;
 
   FFileName := TFolderHelper.GetPascalCoinDataFolder + PathDelim + CT_SETTINGS_FILENAME;
   FIniFile := TIniFile.Create(FFileName);
