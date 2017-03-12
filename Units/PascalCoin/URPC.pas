@@ -242,9 +242,8 @@ var
   i : Integer;
   Headers : TStringList;
   tc : Cardinal;
-  callcounter : Int64;
 begin
-  callcounter := _RPCServer.GetNewCallCounter;
+  _RPCServer.GetNewCallCounter;
   tc := GetTickCount;
   methodName := '';
   paramsTxt := '';
@@ -662,13 +661,13 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
     opr : TOperationResume;
   begin
     Result := false;
-    if (sender<0) or (sender>=TNode.Node.Bank.AccountsCount) then begin
+    if sender >= TNode.Node.Bank.AccountsCount then begin
       If (sender=CT_MaxAccount) then ErrorDesc := 'Need sender'
       else ErrorDesc:='Invalid sender account '+Inttostr(sender);
       ErrorNum:=CT_RPC_ErrNum_InvalidAccount;
       Exit;
     end;
-    if (target<0) or (target>=TNode.Node.Bank.AccountsCount) then begin
+    if target >= TNode.Node.Bank.AccountsCount then begin
       If (target=CT_MaxAccount) then ErrorDesc := 'Need target'
       else ErrorDesc:='Invalid target account '+Inttostr(target);
       ErrorNum:=CT_RPC_ErrNum_InvalidAccount;
@@ -780,7 +779,7 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
     opr : TOperationResume;
   begin
     Result := false;
-    if (account_number<0) or (account_number>=TNode.Node.Bank.AccountsCount) then begin
+    if account_number >= TNode.Node.Bank.AccountsCount then begin
       ErrorDesc:='Invalid account '+Inttostr(account_number);
       ErrorNum:=CT_RPC_ErrNum_InvalidAccount;
       Exit;
@@ -870,7 +869,7 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
       try
         for ian := 0 to accountsnumber.Count - 1 do begin
 
-          if (accountsnumber.Get(ian)<0) or (accountsnumber.Get(ian)>=TNode.Node.Bank.AccountsCount) then begin
+          if accountsnumber.Get(ian) >= TNode.Node.Bank.AccountsCount then begin
             ErrorDesc:='Invalid account '+Inttostr(accountsnumber.Get(ian));
             ErrorNum:=CT_RPC_ErrNum_InvalidAccount;
             Exit;
@@ -1151,7 +1150,7 @@ begin
     // Param "account" contains account number
     // Returns JSON Object with account information based on BlockChain + Pending operations
     c := params.GetAsVariant('account').AsCardinal(CT_MaxAccount);
-    if (c>=0) And (c<TNode.Node.Bank.AccountsCount) then begin
+    if c < TNode.Node.Bank.AccountsCount then begin
       account := TNode.Node.Operations.SafeBoxTransaction.Account(c);
       FillAccountObject(account,GetResultObject);
       Result := True;
@@ -1294,7 +1293,7 @@ begin
     // Param "block" contains block number (0..getblockcount-1)
     // Returns JSON object with block information
     c := params.GetAsVariant('block').AsCardinal(CT_MaxBlock);
-    if (c>=0) And (c<TNode.Node.Bank.BlocksCount) then begin
+    if c < TNode.Node.Bank.BlocksCount then begin
       Result := GetBlock(c,GetResultObject);
     end else begin
       ErrorNum := CT_RPC_ErrNum_InvalidBlock;
@@ -1321,7 +1320,7 @@ begin
         else c2 := TNode.Node.Bank.BlocksCount-1;
       end;
     end;
-    if ((c>=0) And (c<TNode.Node.Bank.BlocksCount)) And (c2>=c) And (c2<TNode.Node.Bank.BlocksCount) then begin
+    if (c < TNode.Node.Bank.BlocksCount) And (c2 >= c) And (c2 < TNode.Node.Bank.BlocksCount) then begin
       i := 0; Result := true;
       while (c<=c2) And (Result) And (i<1000) do begin
         Result := GetBlock(c2,jsonresponse.GetAsArray('result').GetAsObject(i));
@@ -1343,7 +1342,7 @@ begin
     // Param "opblock" contains operation inside a block: (0..getblock.operations-1)
     // Returns a JSON object with operation values as "Operation resume format"
     c := params.GetAsVariant('block').AsCardinal(CT_MaxBlock);
-    if (c>=0) And (c<TNode.Node.Bank.BlocksCount) then begin
+    if (c < TNode.Node.Bank.BlocksCount) then begin
       pcops := TPCOperationsComp.Create(Nil);
       try
         If Not TNode.Node.Bank.LoadOperations(pcops,c) then begin
@@ -1376,7 +1375,7 @@ begin
     // Param "block" contains block
     // Returns a JSON array with items as "Operation resume format"
     c := params.GetAsVariant('block').AsCardinal(CT_MaxBlock);
-    if (c>=0) And (c<TNode.Node.Bank.BlocksCount) then begin
+    if c < TNode.Node.Bank.BlocksCount then begin
       pcops := TPCOperationsComp.Create(Nil);
       try
         If Not TNode.Node.Bank.LoadOperations(pcops,c) then begin
@@ -1413,7 +1412,7 @@ begin
     // Param "depht" (optional or "deep") contains max blocks deep to search (Default: 100)
     // Param "start" and "max" contains starting index and max operations respectively
     c := params.GetAsVariant('account').AsCardinal(CT_MaxAccount);
-    if ((c>=0) And (c<TNode.Node.Bank.AccountsCount)) then begin
+    if c < TNode.Node.Bank.AccountsCount then begin
       if (params.IndexOfName('depth')>=0) then i := params.AsInteger('depth',100) else i:=params.AsInteger('deep',100);
       Result := GetAccountOperations(c,GetResultArray,i,params.AsInteger('start',0),params.AsInteger('max',100));
     end else begin
