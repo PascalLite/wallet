@@ -37,6 +37,9 @@ uses
   {$IFDEF DelphiSockets}
   Sockets,
   {$ENDIF}
+  {$IFDEF UNIX}
+  BaseUnix,
+  {$ENDIF}
   Classes, Sysutils,
   UThread, SyncObjs;
 
@@ -255,10 +258,10 @@ begin
     FTcpBlockSocket.NonBlockMode := true;
     FTcpBlockSocket.Connect(FRemoteHost, IntToStr(FRemotePort));
     lastError := FTcpBlockSocket.LastError;
-    // EINPROGRESS = 115
     if lastError = 0 then begin
       FConnected := true;
-    end else if lastError = 115 then begin
+    end else if (lastError = {$IFDEF UNIX}ESysEWOULDBLOCK{$ELSE}EWOULDBLOCK{$ENDIF}) or
+                (lastError = {$IFDEF UNIX}ESysEINPROGRESS{$ELSE}EINPROGRESS{$ENDIF}) then begin
       FConnected := false;
       for secondsElapsed := 0 to timeoutSeconds do begin
         if FTcpBlockSocket.CanWrite(1000) then begin
