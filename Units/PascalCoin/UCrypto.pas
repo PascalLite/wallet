@@ -180,7 +180,7 @@ begin
 end;
 
 function TECPrivateKey.GetPublicKey: TECDSA_Public;
-var ps : PAnsiChar;
+var
   BNx,BNy : PBIGNUM;
   ctx : PBN_CTX;
 begin
@@ -315,8 +315,8 @@ end;
   increase speed we use a String as a pointer, and only increase speed if
   needed. Also the same with functions "GetMem" and "FreeMem" }
 class procedure TCrypto.DoDoubleSha256(p: PAnsiChar; plength: Cardinal; var ResultSha256: TRawBytes);
-Var PS : PAnsiChar;
-  PC : PAnsiChar;
+var
+  PS : PAnsiChar;
 begin
   If length(ResultSha256)<>32 then SetLength(ResultSha256,32);
   PS := @ResultSha256[1];
@@ -357,8 +357,9 @@ begin
 end;
 
 class function TCrypto.ECDSASign(Key: PEC_KEY; const digest: AnsiString): TECDSA_SIG;
-Var PECS : PECDSA_SIG;
-  p, pr,ps : PAnsiChar;
+var
+  PECS : PECDSA_SIG;
+  p : PAnsiChar;
   i : Integer;
   {$IFDEF OpenSSL10}
   {$ELSE}
@@ -682,7 +683,6 @@ begin
 end;
 
 procedure TBigNum.SetDecimalValue(const Value: AnsiString);
-Var i : Integer;
 begin
   if BN_dec2bn(@FBN,PAnsiChar(Value))=0 then raise ECryptoException.Create('Error on dec2bn');
 end;

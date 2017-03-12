@@ -163,7 +163,7 @@ begin
 end;
 
 function TOpTransaction.DoOperation(AccountTransaction : TPCSafeBoxTransaction; var errors : AnsiString): Boolean;
-Var s_new, t_new : Int64;
+var
   totalamount : Cardinal;
   sender,target : TAccount;
   _h : TRawBytes;

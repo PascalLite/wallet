@@ -90,7 +90,6 @@ Type PLogData = ^TLogData;
 { TLog }
 
 constructor TLog.Create(AOwner: TComponent);
-Var l : TList;
 begin
   FLock := TCriticalSection.Create;
   FProcessGlobalLogs := true;

@@ -145,8 +145,8 @@ var _Node : TNode;
 
 function TNode.AddNewBlockChain(SenderConnection: TNetConnection; NewBlockOperations: TPCOperationsComp;
   var newBlockAccount: TBlockAccount; var errors: AnsiString): Boolean;
-Var i : Integer;
-  operationscomp : TPCOperationsComp;
+var
+  i : Integer;
   nc : TNetConnection;
   ms : TMemoryStream;
   netConnectionsList : TList;
@@ -232,11 +232,9 @@ end;
 function TNode.AddOperations(SenderConnection : TNetConnection; Operations : TOperationsHashTree; OperationsResult : TOperationsResumeList; var errors: AnsiString): Integer;
 Var
   i,j : Integer;
-  operationscomp : TPCOperationsComp;
   valids_operations : TOperationsHashTree;
   nc : TNetConnection;
   e : AnsiString;
-  mtl : TList;
   netConnectionsList : TList;
   s : String;
   OPR : TOperationResume;
@@ -382,7 +380,7 @@ class procedure TNode.DecodeIpStringToNodeServerAddressArray(
     if nsa.port=0 then nsa.port := CT_NetServer_Port;
     Result := (trim(nsa.ip)<>'');
   end;
-Var i,j : Integer;
+var
   ips_string : AnsiString;
   nsa : TNodeServerAddress;
 begin
@@ -669,8 +667,8 @@ begin
 end;
 
 procedure TNode.NotifyNetClientMessage(Sender: TNetConnection; const TheMessage: AnsiString);
-Var i : Integer;
-  s : AnsiString;
+var
+  i : Integer;
 begin
   for i := 0 to FNotifyList.Count-1 do begin
     if Assigned( TNodeNotifyEvents( FNotifyList[i] ).OnNodeMessageEvent) then begin

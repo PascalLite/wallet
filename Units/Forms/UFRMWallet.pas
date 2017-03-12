@@ -668,7 +668,8 @@ begin
 end;
 
 Function TFRMWallet.DoUpdateAccountsFilter : Boolean;
-Var m,bmin,bmax:Int64;
+var
+  bmin,bmax:Int64;
   doupd : Boolean;
 begin
   if FUpdating then exit;
@@ -871,7 +872,7 @@ begin
 end;
 
 procedure TFRMWallet.FormDestroy(Sender: TObject);
-Var i : Integer;
+var
   step : String;
 begin
   TLog.NewLog(ltinfo,Classname,'Destroying form - START');
@@ -1175,11 +1176,11 @@ begin
 end;
 
 procedure TFRMWallet.OnNetBlackListUpdated(Sender: TObject);
-Const CT_TRUE_FALSE : Array[Boolean] Of AnsiString = ('FALSE','TRUE');
-Var i,j : integer;
- P : PNodeServerAddress;
- l : TList;
- strings : TStrings;
+var
+  i,j : integer;
+  P : PNodeServerAddress;
+  l : TList;
+  strings : TStrings;
 begin
   l := TNetData.NetData.BlackList.LockList;
   try
@@ -1597,11 +1598,9 @@ begin
 end;
 
 procedure TFRMWallet.UpdateBlockChainState;
-Var isMining : boolean;
-//  hr : Int64;
-  i,mc : Integer;
-  s : String;
-  mtl : TList;
+var
+  isMining : boolean;
+  mc : Integer;
   f, favg : real;
 begin
   UpdateNodeStatus;

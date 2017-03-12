@@ -768,8 +768,8 @@ begin
 end;
 
 function TPCJSONObject.GetAsArray(Name: String): TPCJSONArray;
-Var NV : TPCJSONNameValue;
-  V : TPCJSONData;
+var
+  NV : TPCJSONNameValue;
 begin
   NV := GetByName(Name);
   if Not (NV.Value is TPCJSONArray) then begin
@@ -779,8 +779,8 @@ begin
 end;
 
 function TPCJSONObject.GetAsObject(Name: String): TPCJSONObject;
-Var NV : TPCJSONNameValue;
-  V : TPCJSONData;
+var
+  NV : TPCJSONNameValue;
 begin
   NV := GetByName(Name);
   if Not (NV.Value is TPCJSONObject) then begin
@@ -790,8 +790,8 @@ begin
 end;
 
 function TPCJSONObject.GetAsVariant(Name: String): TPCJSONVariantValue;
-Var NV : TPCJSONNameValue;
-  V : TPCJSONData;
+var
+  NV : TPCJSONNameValue;
 begin
   NV := GetByName(Name);
   if Not (NV.Value is TPCJSONVariantValue) then begin
@@ -857,8 +857,8 @@ end;
 
 procedure TPCJSONObject.SetAs(Name: String; Value: TPCJSONData);
  // When assigning a object with SetAs this will not be freed automatically
-Var NV : TPCJSONNameValue;
-  V : TPCJSONData;
+var
+  NV : TPCJSONNameValue;
   i : Integer;
 begin
   i := GetIndexOrCreateName(Name);

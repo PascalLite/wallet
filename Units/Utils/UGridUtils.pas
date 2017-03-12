@@ -191,7 +191,6 @@ begin
 end;
 
 constructor TAccountsGrid.Create(AOwner: TComponent);
-Var i : Integer;
 begin
   inherited;
   FOnUpdated := Nil;
@@ -265,7 +264,8 @@ begin
 end;
 
 procedure TAccountsGrid.LoadFromString(value : AnsiString);
-Var c,i,j : Integer;
+var
+  i,j : Integer;
   json : TPCJSONObject;
   jsonData : TPCJSONData;
   columns : TPCJSONArray;
@@ -512,7 +512,6 @@ function TAccountsGrid.SaveToString : AnsiString;
 var
   c : Cardinal;
   i : Integer;
-  j : Integer;
   json : TPCJSONObject;
   columns : TPCJSONArray;
   column : TPCJSONArray;
@@ -811,7 +810,7 @@ begin
 end;
 
 procedure TOperationsGrid.ShowModalDecoder(WalletKeys: TWalletKeys; AppParams : TAppParams);
-Var i : Integer;
+var
   opr : TOperationResume;
   FRM : TFRMPayloadDecoder;
 begin
@@ -828,8 +827,9 @@ begin
 end;
 
 procedure TOperationsGrid.UpdateAccountOperations;
-Var list : TList;
-  i,j : Integer;
+var
+  list : TList;
+  i : Integer;
   OPR : TOperationResume;
   Op : TPCOperation;
   opc : TPCOperationsComp;
