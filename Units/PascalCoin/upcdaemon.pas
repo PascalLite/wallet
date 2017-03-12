@@ -197,50 +197,54 @@ begin
   FMInerServer := Nil;
   TLog.NewLog(ltinfo,Classname,'START PascalCoin Server');
   try
+    FWalletKeys := TWalletKeysExt.Create(Nil);
     try
-      FWalletKeys := TWalletKeysExt.Create(Nil);
-      // Load Node
-      // Check OpenSSL dll
-      if Not LoadSSLCrypt then begin
-        WriteLn('Cannot load '+SSL_C_LIB);
-        WriteLn('To use this software make sure this file is available on you system or reinstall the application');
-        raise Exception.Create('Cannot load '+SSL_C_LIB+#10+'To use this software make sure this file is available on you system or reinstall the application');
-      end;
-      TCrypto.InitCrypto;
-      FWalletKeys.WalletFileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'WalletKeys.dat';
-      // Creating Node:
-      FNode := TNode.Node;
-      // RPC Server
-      InitRPCServer;
-      Try
-        // Check Database
-        FNode.Bank.StorageClass := TFileStorage;
-        TFileStorage(FNode.Bank.Storage).DatabaseFolder := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'Data';
-        // Reading database
-        FNode.Node.Bank.DiskRestoreFromOperations(CT_MaxBlock);
-        FWalletKeys.SafeBox := FNode.Node.Bank.SafeBox;
-        FNode.Node.AutoDiscoverNodes(CT_Discover_IPs);
-        FNode.Node.NetServer.Active := true;
-
-        // RPC Miner Server
-        InitRPCMinerServer;
-        Try
-          Repeat
-            Sleep(100);
-          Until Terminated;
-        finally
-          FreeAndNil(FMinerServer);
+      try
+        // Load Node
+        // Check OpenSSL dll
+        if Not LoadSSLCrypt then begin
+          WriteLn('Cannot load '+SSL_C_LIB);
+          WriteLn('To use this software make sure this file is available on you system or reinstall the application');
+          raise Exception.Create('Cannot load '+SSL_C_LIB+#10+'To use this software make sure this file is available on you system or reinstall the application');
         end;
-      Finally
-        FreeAndNil(FRPC);
+        TCrypto.InitCrypto;
+        FWalletKeys.WalletFileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'WalletKeys.dat';
+        // Creating Node:
+        FNode := TNode.Node;
+        // RPC Server
+        InitRPCServer;
+        Try
+          // Check Database
+          FNode.Bank.StorageClass := TFileStorage;
+          TFileStorage(FNode.Bank.Storage).DatabaseFolder := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'Data';
+          // Reading database
+          FNode.Node.Bank.DiskRestoreFromOperations(CT_MaxBlock);
+          FWalletKeys.SafeBox := FNode.Node.Bank.SafeBox;
+          FNode.Node.AutoDiscoverNodes(CT_Discover_IPs);
+          FNode.Node.NetServer.Active := true;
+
+          // RPC Miner Server
+          InitRPCMinerServer;
+          Try
+            Repeat
+              Sleep(100);
+            Until Terminated;
+          finally
+            FreeAndNil(FMinerServer);
+          end;
+        Finally
+          FreeAndNil(FRPC);
+        end;
+        FNode.NetServer.Active := false;
+        TNetData.NetData.Free;
+        FreeAndNil(FNode);
+      except
+        on e:Exception do begin
+          TLog.NewLog(lterror,Classname,'Exception '+E.Classname+': '+E.Message);
+        end;
       end;
-      FNode.NetServer.Active := false;
-      TNetData.NetData.Free;
-      FreeAndNil(FNode);
-    except
-      on e:Exception do begin
-        TLog.NewLog(lterror,Classname,'Exception '+E.Classname+': '+E.Message);
-      end;
+    finally
+      FWalletKeys.Free;
     end;
   finally
     TLog.NewLog(ltinfo,Classname,'EXIT PascalCoin Server');
