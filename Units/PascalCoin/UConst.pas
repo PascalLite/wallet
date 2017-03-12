@@ -107,7 +107,7 @@ Const
 
   CT_ClientAppVersion : AnsiString = {$IFDEF PRODUCTION}'1.4.4'{$ELSE}{$IFDEF TESTNET}'TESTNET'{$ELSE}{$ENDIF}{$ENDIF};
 
-  CT_Discover_IPs =  '54.201.174.69;pascallite.ddns.net;pascallite2.ddns.net;pascallite3.ddns.net;pascallite.dynamic-dns.net;pascallite2.dynamic-dns.net;pascallite3.dynamic-dns.net';
+  CT_Discover_IPs =  'pascallite.ddns.net;pascallite2.ddns.net;pascallite3.ddns.net;pascallite4.dynamic-dns.net;pascallite5.dynamic-dns.net;pascallite.dynamic-dns.net;pascallite2.dynamic-dns.net;pascallite3.dynamic-dns.net';
 
   CT_TRUE_FALSE : Array[Boolean] Of AnsiString = ('FALSE','TRUE');
 
