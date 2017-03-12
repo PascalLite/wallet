@@ -76,7 +76,7 @@ Function DateTime2UnivDateTime(d:TDateTime):TDateTime;
 {$IFDEF FPC}
 begin
   // FPC bug. Do not call LocalTimeToUniversal(d) directly.
-  // LocalTimeToUniversal(d) will return diferent values with FPC 3.0.0 and FPC 3.0.2.
+  // LocalTimeToUniversal(d) will return different values with FPC 3.0.0 and FPC 3.0.2.
   Result := LocalTimeToUniversal(d,-GetLocalTimeOffset);
 end;
 {$ELSE}
@@ -95,7 +95,7 @@ Function UnivDateTime2LocalDateTime(d:TDateTime):TDateTime;
 {$IFDEF FPC}
 begin
   // FPC bug. Do not call UniversalTimeToLocal(d) directly.
-  // UniversalTimeToLocal(d) will return diferent values with FPC 3.0.0 and FPC 3.0.2.
+  // UniversalTimeToLocal(d) will return different values with FPC 3.0.0 and FPC 3.0.2.
   Result := UniversalTimeToLocal(d,-GetLocalTimeOffset);
 end;
 
