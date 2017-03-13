@@ -21,6 +21,9 @@ uses
   Classes, SysUtils, daemonapp,
   SyncObjs, UOpenSSL, UCrypto, UNode, UFileStorage, UFolderHelper, UWalletKeys, UConst, ULog, UNetProtocol,
   IniFiles,
+  {$IFDEF UNIX}
+  BaseUnix,
+  {$ENDIF}
   UThread, URPC, UPoolMining, UAccounts, UAppParams;
 
 Type
@@ -52,8 +55,6 @@ Type
     Function UnInstall: boolean; override;
   end;
 
-  { TPCDaemonMapper }
-
   TPCDaemonMapper = Class(TCustomDaemonMapper)
   private
     procedure OnPascalCoinInThreadLog(logtype : TLogType; Time : TDateTime; AThreadID : Cardinal; Const sender, logtext : AnsiString);
@@ -67,6 +68,10 @@ Type
 implementation
 
 Var _FLog : TLog;
+  StopFlag : Cardinal = 0;
+  {$IFDEF UNIX}
+  OldSignalHandler : signalhandler;
+  {$ENDIF}
 
 { TPCDaemonThread }
 
@@ -228,7 +233,7 @@ begin
           Try
             Repeat
               Sleep(100);
-            Until Terminated;
+            Until Terminated or (StopFlag > 0);
           finally
             FreeAndNil(FMinerServer);
           end;
@@ -314,11 +319,15 @@ end;
 
 function TPCDaemon.ShutDown: Boolean;
 begin
-  Result:=inherited ShutDown;
-  TLog.NewLog(ltinfo,ClassName,'Daemon Shutdown: '+BoolToStr(Result));
-  FThread.Terminate;
-  FThread.WaitFor;
-  FreeAndNil(FThread);
+  if InterlockedExchange(StopFlag, 1) = 0 then begin
+    Result:=inherited ShutDown;
+    TLog.NewLog(ltinfo,ClassName,'Daemon is shutting down. Please wait for a while until it gracefully finishes');
+    FThread.Terminate;
+    FThread.WaitFor;
+    FreeAndNil(FThread);
+  end else begin
+    Result := false;
+  end;
 end;
 
 function TPCDaemon.Install: Boolean;
@@ -346,10 +355,20 @@ begin
   end;
 end;
 
+{$IFDEF UNIX}
+procedure SignalHandler(signal: longint); cdecl;
+begin
+  OldSignalHandler(signal);
+end;
+{$ENDIF}
+
 procedure TPCDaemonMapper.DoOnCreate;
 Var D : TDaemonDef;
 begin
   inherited DoOnCreate;
+  {$IFDEF UNIX}
+  OldSignalHandler := FpSignal(SIGINT, @SignalHandler);
+  {$ENDIF}
   WriteLn('');
   WriteLn(formatDateTime('dd/mm/yyyy hh:nn:ss.zzz',now)+' Starting PascalCoin server');
   _FLog.OnInThreadNewLog:=@OnPascalCoinInThreadLog;
@@ -370,3 +389,4 @@ initialization
 finalization
   FreeAndNil(_FLog);
 end.
+

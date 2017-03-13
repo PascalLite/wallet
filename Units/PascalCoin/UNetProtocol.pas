@@ -181,6 +181,11 @@ Type
     property TimeOffset : Integer read FTimeOffset;
   end;
 
+  TThreadGetNewBlockChainFromClient = Class(TPCThread)
+  protected
+    procedure BCExecute; override;
+  End;
+
   TNetData = Class(TComponent)
   private
     FNetworkAdjustedTime : TNetworkAdjustedTime;
@@ -191,7 +196,6 @@ Type
     FBlackList : TPCThreadList;
     FLastRequestId : Cardinal;
     FRegisteredRequests : TPCThreadList;
-    FIsDiscoveringServers : Boolean;
     FIsGettingNewBlockChainFromClient : Boolean;
     FOnNetConnectionsUpdated: TNotifyEvent;
     FOnNodeServersUpdated: TNotifyEvent;
@@ -204,6 +208,7 @@ Type
     FFixedServers : TNodeServerAddressArray;
     FNetClientsDestroyThread : TNetClientsDestroyThread;
     FNetConnectionsActive: Boolean;
+
     Procedure IncStatistics(incActiveConnections,incClientsConnections,incServersConnections,incServersConnectionsWithResponse : Integer; incBytesReceived, incBytesSend : Int64);
 
     procedure SetNetConnectionsActive(const Value: Boolean);  protected
@@ -249,7 +254,7 @@ Type
     Property NetConnections : TPCThreadList read FNetConnections;
     Property NetStatistics : TNetStatistics read FNetStatistics;
     Property NetworkAdjustedTime : TNetworkAdjustedTime read FNetworkAdjustedTime;
-    Property IsDiscoveringServers : Boolean read FIsDiscoveringServers;
+    function IsDiscoveringServers : Boolean;
     Property IsGettingNewBlockChainFromClient : Boolean read FIsGettingNewBlockChainFromClient;
     Property MaxRemoteOperationBlock : TOperationBlock read FMaxRemoteOperationBlock;
     Property NodePrivateKey : TECPrivateKey read FNodePrivateKey;
@@ -265,7 +270,19 @@ Type
     Procedure NotifyReceivedHelloMessage;
     Procedure NotifyStatisticsChanged;
     Property NetConnectionsActive : Boolean read FNetConnectionsActive write SetNetConnectionsActive;
-  End;
+
+  private
+    FDiscoveringThreads : TThreadList;
+    FDiscoveringThreadsCount : Cardinal;
+
+    FBlockChainReceiver : TThreadGetNewBlockChainFromClient;
+    FBlockChainUpdateRequests : Cardinal;
+    FBlockChainUpdateEvent : PRTLEvent;
+
+  private
+    property DiscoveringThreadsCount : Cardinal read FDiscoveringThreadsCount;
+    procedure ForceBlockchainUpdate;
+  end;
 
   TNetConnection = Class(TComponent)
   private
@@ -365,11 +382,6 @@ Type
     procedure BCExecute; override;
   public
     Constructor Create(NodeServerAddress: TNodeServerAddress; NotifyOnTerminate : TNotifyEvent);
-  End;
-
-  TThreadGetNewBlockChainFromClient = Class(TPCThread)
-  protected
-    procedure BCExecute; override;
   End;
 
 
@@ -664,7 +676,6 @@ begin
   FOnNodeServersUpdated := Nil;
   FOnBlackListUpdated := Nil;
   FOnReceivedHelloMessage := Nil;
-  FIsDiscoveringServers := false;
   FNodeServers := TPCThreadList.Create;
   FRegisteredRequests := TPCThreadList.Create;
   FLastRequestId := 0;
@@ -677,6 +688,11 @@ begin
   FThreadCheckConnections := TThreadCheckConnections.Create(Self);
   FNetDataNotifyEventsThread := TNetDataNotifyEventsThread.Create(Self);
   FNetClientsDestroyThread := TNetClientsDestroyThread.Create(Self);
+
+  FDiscoveringThreads := TThreadList.Create;
+  FBlockChainReceiver := TThreadGetNewBlockChainFromClient.Create(false);
+  FBlockChainUpdateEvent := RTLEventCreate;
+
   If Not Assigned(_NetData) then _NetData := Self;
 end;
 
@@ -691,6 +707,7 @@ end;
 destructor TNetData.Destroy;
 Var l : TList;
   i : Integer;
+  list : TList;
   tdc : TThreadDiscoverConnection;
 begin
   TLog.NewLog(ltInfo,ClassName,'TNetData.Destroy START');
@@ -706,15 +723,24 @@ begin
   FreeAndNil(FThreadCheckConnections);
 
   // Now finish all DiscoverConnection threads
-  Repeat
-    tdc := TThreadDiscoverConnection( TPCThreadClass.GetThreadByClass(TThreadDiscoverConnection,nil) );
-    if Assigned(tdc) then begin
-      tdc.FreeOnTerminate := false;
+  list := FDiscoveringThreads.LockList;
+  try
+    for tdc in list do begin
       tdc.Terminate;
-      tdc.WaitFor;
-      tdc.Free;
     end;
-  Until Not Assigned(tdc);
+  finally
+    FDiscoveringThreads.UnlockList;
+  end;
+  while IsDiscoveringServers do begin
+    Sleep(100);
+  end;
+  FreeAndNil(FDiscoveringThreads);
+
+  FBlockChainReceiver.Terminate;;
+  ForceBlockchainUpdate;
+  FBlockChainReceiver.WaitFor;
+  FreeAndNil(FBlockChainReceiver);
+  RTLeventdestroy(FBlockChainUpdateEvent);
 
   // Closing connections
   l := FNetConnections.LockList;
@@ -817,10 +843,13 @@ Var P : PNodeServerAddress;
   canAdd : Boolean;
 begin
   if Not FNetConnectionsActive then exit;
-  if TPCThread.ThreadClassFound(TThreadDiscoverConnection,nil)>=0 then begin
+
+  if IsDiscoveringServers then
+  begin
     TLog.NewLog(ltInfo,ClassName,'Allready discovering servers...');
     exit;
   end;
+
   CleanBlackList;
   If NetStatistics.ClientsConnections>0 then begin
     j := CT_MinServersConnected - NetStatistics.ServersConnectionsWithResponse;
@@ -858,9 +887,10 @@ begin
       TLog.NewLog(ltDebug,Classname,'Start discovering up to '+inttostr(j+1)+' servers... (max:'+inttostr(l.count)+')');
       //
       for i := 0 to j do begin
-        FIsDiscoveringServers := true;
         P := PNodeServerAddress(l[i]);
-        tdc := TThreadDiscoverConnection.Create(P^,DiscoverServersTerminated);
+        InterLockedIncrement(FDiscoveringThreadsCount);
+        tdc := TThreadDiscoverConnection.Create(P^, DiscoverServersTerminated);
+        FDiscoveringThreads.Add(tdc);
       end;
     Finally
       FNodeServers.UnlockList;
@@ -870,16 +900,31 @@ begin
   end;
 end;
 
+function TNetData.IsDiscoveringServers : Boolean;
+begin
+  Result := DiscoveringThreadsCount > 0;
+end;
+
 procedure TNetData.DiscoverServersTerminated(Sender: TObject);
 begin
   NotifyNodeServersUpdated;
-  if TPCThread.ThreadClassFound(TThreadDiscoverConnection,Nil)>=0 then exit;
-  FIsDiscoveringServers := false;
+
+  FDiscoveringThreads.Remove(Sender);
+  InterLockedDecrement(FDiscoveringThreadsCount);
+  if IsDiscoveringServers then begin
+    exit;
+  end;
+
   // If here, discover servers finished, so we can try to get/receive data
   TLog.NewLog(ltDebug,Classname,Format('Discovering servers finished. Now we have %d active connections and %d connections to other servers',
     [ConnectionsCount(false),ConnectionsCount(true)]));
-  if TPCThread.ThreadClassFound(TThreadGetNewBlockChainFromClient,nil)>=0 then exit;
-  TThreadGetNewBlockChainFromClient.Create(false).FreeOnTerminate := true;
+  ForceBlockchainUpdate;
+end;
+
+procedure TNetData.ForceBlockchainUpdate;
+begin
+  InterLockedIncrement(FBlockChainUpdateRequests);
+  RTLeventSetEvent(FBlockChainUpdateEvent);
 end;
 
 class function TNetData.ExtractHeaderInfo(buffer : TStream; var HeaderData : TNetHeaderData; DataBuffer : TStream; var IsValidHeaderButNeedMoreData : Boolean) : Boolean;
@@ -1167,7 +1212,7 @@ var
   my_op, client_op : TOperationBlock;
 begin
   // Protection against discovering servers...
-  if FIsDiscoveringServers then begin
+  if IsDiscoveringServers then begin
     TLog.NewLog(ltdebug,CT_LogSender,'Is discovering servers...');
     exit;
   end;
@@ -2130,9 +2175,7 @@ Begin
       FRemoteOperationBlock := op.OperationBlock;
       If (TNetData.NetData.FMaxRemoteOperationBlock.block<FRemoteOperationBlock.block) then begin
         TNetData.NetData.FMaxRemoteOperationBlock := FRemoteOperationBlock;
-        if TPCThread.ThreadClassFound(TThreadGetNewBlockChainFromClient,nil)<0 then begin
-          TThreadGetNewBlockChainFromClient.Create(false).FreeOnTerminate := true;
-        end;
+        TNetData.NetData.ForceBlockchainUpdate;
       end;
       if (DataBuffer.Size-DataBuffer.Position>=4) then begin
         DataBuffer.Read(c,4);
@@ -2905,7 +2948,7 @@ Var l : TList;
 begin
   FLastCheckTS := GetTickCount;
   while (Not Terminated) do begin
-    if ((GetTickCount>(FLastCheckTS+1000)) AND (Not FNetData.FIsDiscoveringServers)) then begin
+    if ((GetTickCount>(FLastCheckTS+1000)) AND (Not FNetData.IsDiscoveringServers)) then begin
       nactive := 0;
       ndeleted := 0;
       ntotal := 0;
@@ -2981,8 +3024,6 @@ begin
   inherited Create(false);
 end;
 
-{ TThreadGetNewBlockChainFromClient }
-
 procedure TThreadGetNewBlockChainFromClient.BCExecute;
 var
   i : Integer;
@@ -2991,36 +3032,49 @@ var
   netConnectionsList : TList;
   nc : TNetConnection;
 begin
-  // Search better candidates:
-  candidates := TList.Create;
-  try
-    lop := CT_OperationBlock_NUL;
-    netConnectionsList := TNetData.NetData.ConnectionsLock;
-    Try
-      for i := 0 to netConnectionsList.Count - 1 do begin
-        TNetData.NetData.FMaxRemoteOperationBlock := CT_OperationBlock_NUL;
-        nc := TNetConnection(netConnectionsList[i]);
-        if (nc.FRemoteOperationBlock.block>=TNode.Node.Bank.BlocksCount) And
-           (nc.FRemoteOperationBlock.block>=lop.block)
-           then begin
-           candidates.Add(nc);
-           lop := TNetConnection(netConnectionsList[i]).FRemoteOperationBlock;
-        end;
-        //
-        if nc.FIsDownloadingBlocks then exit;
-        //
-      end;
-    Finally
-      TNetData.NetData.ConnectionsUnlock;
-    End;
-    TNetData.NetData.FMaxRemoteOperationBlock := lop;
-    if (candidates.Count>0) then begin
-      // Random a candidate
-      i := Random(candidates.Count); // i = 0..count-1
-      TNetData.NetData.GetNewBlockChainFromClient(TNetConnection(candidates[i]));
+
+  while true do begin;
+    repeat
+      RTLeventWaitFor(TNetData.NetData.FBlockChainUpdateEvent);
+      RTLeventResetEvent(TNetData.NetData.FBlockChainUpdateEvent);
+    until InterLockedExchange(TNetData.NetData.FBlockChainUpdateRequests, 0) <> 0;
+
+    if Terminated then begin
+      break;
     end;
-  finally
-    candidates.Free;
+
+    // Search better candidates:
+    candidates := TList.Create;
+    try
+      lop := CT_OperationBlock_NUL;
+      netConnectionsList := TNetData.NetData.ConnectionsLock;
+      Try
+        for i := 0 to netConnectionsList.Count - 1 do begin
+          TNetData.NetData.FMaxRemoteOperationBlock := CT_OperationBlock_NUL;
+          nc := TNetConnection(netConnectionsList[i]);
+          if (nc.FRemoteOperationBlock.block>=TNode.Node.Bank.BlocksCount) And
+             (nc.FRemoteOperationBlock.block>=lop.block)
+             then begin
+             candidates.Add(nc);
+             lop := TNetConnection(netConnectionsList[i]).FRemoteOperationBlock;
+          end;
+          //
+          if nc.FIsDownloadingBlocks then exit;
+          //
+        end;
+      Finally
+        TNetData.NetData.ConnectionsUnlock;
+      End;
+      TNetData.NetData.FMaxRemoteOperationBlock := lop;
+      if (candidates.Count>0) then begin
+        // Random a candidate
+        i := Random(candidates.Count); // i = 0..count-1
+        TNetData.NetData.GetNewBlockChainFromClient(TNetConnection(candidates[i]));
+      end;
+    finally
+      candidates.Free;
+    end;
+
   end;
 end;
 
