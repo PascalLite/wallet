@@ -391,7 +391,7 @@ Type
     Function LoadOperations(Operations : TPCOperationsComp; Block : Cardinal) : Boolean;
     Property SafeBox : TPCSafeBox read FSafeBox;
     Function AddNewBlockChainBlock(Operations: TPCOperationsComp; var newBlock: TBlockAccount; var errors: AnsiString; timeAdjustment : Integer = 0): Boolean;
-    Procedure DiskRestoreFromOperations(max_block : Int64);
+    function DiskRestoreFromOperations(max_block : Int64; stop : PBoolean = Nil) : Boolean;
     Procedure NewLog(Operations: TPCOperationsComp; Logtype: TLogType; Logtxt: AnsiString);
     Property OnLog: TPCBankLog read FOnLog write FOnLog;
     Property LastOperationBlock : TOperationBlock read FLastOperationBlock;
@@ -612,7 +612,7 @@ begin
   End;
 end;
 
-procedure TPCBank.DiskRestoreFromOperations(max_block : Int64);
+function TPCBank.DiskRestoreFromOperations(max_block : Int64; stop : PBoolean = Nil) : Boolean;
 Var
   errors: AnsiString;
   newBlock: TBlockAccount;
@@ -639,7 +639,7 @@ begin
       NewLog(Nil, ltinfo,'Start restoring from disk operations (Max '+inttostr(max_block)+') BlockCount: '+inttostr(BlocksCount)+' Orphan: ' +Storage.Orphan);
       Operations := TPCOperationsComp.Create(Self);
       try
-        while ((BlocksCount<=max_block)) do begin
+        while ((not Assigned(stop)) or (not stop^)) and (BlocksCount <= max_block) do begin
           if Storage.BlockExists(BlocksCount) then begin
             if Storage.LoadBlockChainBlock(Operations,BlocksCount) then begin
               if Not AddNewBlockChainBlock(Operations,newBlock,errors) then begin
@@ -661,6 +661,11 @@ begin
     end;
   finally
     FBankLock.Release;
+  end;
+  if Assigned(stop) then begin
+    Result := not stop^;
+  end else begin
+    Result := true;
   end;
 end;
 
