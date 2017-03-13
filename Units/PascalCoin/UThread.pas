@@ -39,14 +39,8 @@ Type
     procedure Execute; override;
     procedure BCExecute; virtual; abstract;
   public
-    Class function ThreadClassFound(tclass : TPCThreadClass; Exclude : TObject) : Integer;
-    Class function ThreadCount : Integer;
-    Class function GetThread(index : Integer) : TPCThread;
-    Class function GetThreadByClass(tclass : TPCThreadClass; Exclude : TObject) : TPCThread;
-    Class function TerminateAllThreads(tclass: TPCThreadClass) : Integer;
     Class Procedure ProtectEnterCriticalSection(Const Sender : TObject; var Lock : TCriticalSection);
     Class Function TryProtectEnterCriticalSection(Const Sender : TObject; MaxWaitMilliseconds : Cardinal; var Lock : TCriticalSection) : Boolean;
-    Class Procedure ThreadsListInfo(list: TStrings);
     Property DebugStep : String read FDebugStep write FDebugStep;
     property Terminated;
   End;
@@ -66,7 +60,6 @@ Type
     procedure UnlockList; inline;
   end;
 
-
 implementation
 
 uses
@@ -74,20 +67,17 @@ uses
 
 { TPCThread }
 
-Var _threads : TPCThreadList;
-
 procedure TPCThread.DoTerminate;
 begin
   inherited;
 end;
 
 procedure TPCThread.Execute;
-Var l : TList;
+var
   i : Integer;
 begin
   FStartTickCount := GetTickCount;
   FDebugStep := '';
-  i := _threads.Add(Self);
   try
     TLog.NewLog(ltdebug,Classname,'Starting Thread in pos '+inttostr(i+1));
     Try
@@ -104,45 +94,7 @@ begin
       end;
     End;
   finally
-    l := _threads.LockList;
-    Try
-      i := l.Remove(Self);
-      TLog.NewLog(ltdebug,Classname,'Finalizing Thread in pos '+inttostr(i+1)+'/'+inttostr(l.Count+1)+' working time: '+FormatFloat('0.000',(GetTickCount-FStartTickCount) / 1000)+' sec');
-    Finally
-      _threads.UnlockList;
-    End;
-  end;
-end;
-
-class function TPCThread.GetThread(index: Integer): TPCThread;
-Var l : TList;
-begin
-  Result := Nil;
-  l := _threads.LockList;
-  try
-    if (index<0) or (index>=l.Count) then exit;
-    Result := TPCThread(l[index]);
-  finally
-    _threads.UnlockList;
-  end;
-end;
-
-class function TPCThread.GetThreadByClass(tclass: TPCThreadClass; Exclude: TObject): TPCThread;
-Var l : TList;
-  i : Integer;
-begin
-  Result := Nil;
-  if Not Assigned(_threads) then exit;
-  l := _threads.LockList;
-  try
-    for i := 0 to l.Count - 1 do begin
-      if (TPCThread(l[i]) is tclass) And ((l[i])<>Exclude) then begin
-        Result := TPCThread(l[i]);
-        exit;
-      end;
-    end;
-  finally
-    _threads.UnlockList;
+    TLog.NewLog(ltdebug,Classname,'Finalizing Thread. Working time: '+FormatFloat('0.000',(GetTickCount-FStartTickCount) / 1000)+' sec');
   end;
 end;
 
@@ -154,55 +106,6 @@ begin
     Lock.Acquire;
 //    TLog.NewLog(ltdebug,Sender.Classname,Format('UnLocked critical section (ENTER): LockCount:%d RecursionCount:%d Semaphore:%d LockOwnerThread:%s',[
 //      Lock.LockCount,Lock.RecursionCount,Lock.LockSemaphore,IntToHex(Lock.OwningThread,8) ]));
-  end;
-end;
-
-class function TPCThread.TerminateAllThreads(tclass: TPCThreadClass): Integer;
-begin
-
-end;
-
-class function TPCThread.ThreadClassFound(tclass: TPCThreadClass; Exclude : TObject): Integer;
-Var l : TList;
-begin
-  Result := -1;
-  if Not Assigned(_threads) then exit;
-  l := _threads.LockList;
-  try
-    for Result := 0 to l.Count - 1 do begin
-      if (TPCThread(l[Result]) is tclass) And ((l[Result])<>Exclude) then exit;
-    end;
-    Result := -1;
-  finally
-    _threads.UnlockList;
-  end;
-end;
-
-class function TPCThread.ThreadCount: Integer;
-Var l : TList;
-begin
-  l := _threads.LockList;
-  try
-    Result := l.Count;
-  finally
-    _threads.UnlockList;
-  end;
-end;
-
-class procedure TPCThread.ThreadsListInfo(list: TStrings);
-Var l : TList;
-  i : Integer;
-begin
-  l := _threads.LockList;
-  try
-    list.BeginUpdate;
-    list.Clear;
-    for i := 0 to l.Count - 1 do begin
-      list.Add(Format('%.2d/%.2d <%s> Time:%s sec - Step: %s',[i+1,l.Count,TPCThread(l[i]).ClassName,FormatFloat('0.000',(GetTickCount-TPCThread(l[i]).FStartTickCount) / 1000),TPCThread(l[i]).DebugStep] ));
-    end;
-    list.EndUpdate;
-  finally
-    _threads.UnlockList;
   end;
 end;
 
@@ -292,11 +195,4 @@ begin
   FLock.Release;
 end;
 
-initialization
-  _threads := TPCThreadList.Create;
-finalization
-  {.$IFnDEF FPC}
-  FreeAndNil(_threads);
-  {.$ENDIF}
 end.
-

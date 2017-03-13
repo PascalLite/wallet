@@ -100,7 +100,6 @@ Type
   TNodeNotifyEvents = Class(TComponent)
   private
     FNode: TNode;
-    FPendingNotificationsList : TPCThreadList;
     FThreadSafeNodeNotifyEvent : TThreadSafeNodeNotifyEvent;
     FOnBlocksChanged: TNotifyEvent;
     FOnOperationsChanged: TNotifyEvent;
@@ -729,9 +728,7 @@ begin
   FOnBlocksChanged := Nil;
   FOnNodeMessageEvent := Nil;
   FMessages := TStringList.Create;
-  FPendingNotificationsList := TPCThreadList.Create;
   FThreadSafeNodeNotifyEvent := TThreadSafeNodeNotifyEvent.Create(Self);
-  FThreadSafeNodeNotifyEvent.FreeOnTerminate := true; // This is to prevent locking when freeing component
   Node := _Node;
 end;
 
@@ -740,7 +737,8 @@ begin
   if Assigned(FNode) then FNode.FNotifyList.Remove(Self);
   FThreadSafeNodeNotifyEvent.FNodeNotifyEvents := Nil;
   FThreadSafeNodeNotifyEvent.Terminate;
-  FreeAndNil(FPendingNotificationsList);
+  FThreadSafeNodeNotifyEvent.WaitFor;
+  FreeAndNil(FThreadSafeNodeNotifyEvent);
   FreeAndNil(FMessages);
   inherited;
 end;
@@ -789,8 +787,8 @@ end;
 
 constructor TThreadSafeNodeNotifyEvent.Create(ANodeNotifyEvents: TNodeNotifyEvents);
 begin
-  FNodeNotifyEvents := ANodeNotifyEvents;
   Inherited Create(false);
+  FNodeNotifyEvents := ANodeNotifyEvents;
 end;
 
 procedure TThreadSafeNodeNotifyEvent.SynchronizedProcess;
@@ -870,10 +868,10 @@ end;
 constructor TThreadNodeNotifyOperations.Create(NetConnection: TNetConnection;
   MakeACopyOfOperationsHashTree: TOperationsHashTree);
 begin
+  Inherited Create(false);
   FOperationsHashTree := TOperationsHashTree.Create;
   FOperationsHashTree.CopyFromHashTree(MakeACopyOfOperationsHashTree);
   FNetConnection := NetConnection;
-  Inherited Create(false);
   FreeOnTerminate := true;
 end;
 
