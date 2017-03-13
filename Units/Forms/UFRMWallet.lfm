@@ -13,7 +13,6 @@ object FRMWallet: TFRMWallet
   Font.Height = -11
   Font.Name = 'Tahoma'
   Menu = MainMenu
-  OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poOwnerFormCenter
