@@ -900,7 +900,8 @@ procedure TFRMWallet.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   RTLeventSetEvent(FFormCloseEvent);
   if FDataLoadingFinished = false then begin
-    CloseAction := caHide;
+    CloseAction := caNone;
+    FRMWallet.Caption := 'Pascal Lite Wallet, JSON-RPC Miner & Explorer. Closing...';
   end;
 end;
 
