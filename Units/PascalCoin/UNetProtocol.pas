@@ -376,10 +376,10 @@ Type
     Constructor Create; override;
   End;
 
-  TThreadDiscoverConnection = Class(TPCThread)
+  TThreadDiscoverConnection = Class(TThread)
     FNodeServerAddress : TNodeServerAddress;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(NodeServerAddress: TNodeServerAddress; NotifyOnTerminate : TNotifyEvent);
   End;
@@ -2880,7 +2880,7 @@ end;
 
 { TThreadDiscoverConnection }
 
-procedure TThreadDiscoverConnection.BCExecute;
+procedure TThreadDiscoverConnection.Execute;
 Var NC : TNetClient;
   ok : Boolean;
   lns : TList;
@@ -2889,14 +2889,11 @@ Var NC : TNetClient;
 begin
   TLog.NewLog(ltInfo,Classname,'Starting discovery of connection '+FNodeServerAddress.ip+':'+InttoStr(FNodeServerAddress.port));
   Pnsa := Nil;
-  DebugStep := 'Locking list';
   // Register attempt
   lns := TNetData.NetData.FNodeServers.LockList;
   try
-    DebugStep := 'Searching net client';
     i := TNetData.NetData.IndexOfNetClient(lns,FNodeServerAddress.ip,FNodeServerAddress.port);
     if i>=0 then begin
-      DebugStep := 'Searching client found';
       Pnsa := PNodeServerAddress(lns[i]);
       Pnsa.last_attempt_to_connect := Now;
       Inc(Pnsa.total_failed_attemps_to_connect);
@@ -2904,25 +2901,19 @@ begin
   finally
     TNetData.NetData.FNodeServers.UnlockList;
   end;
-  DebugStep := 'Synchronizing notify';
   TNetData.NetData.NotifyNodeServersUpdated;
   // Try to connect
   ok := false;
-  DebugStep := 'Trying to connect';
   NC := TNetClient.Create(Nil);
   Try
-    DebugStep := 'Connecting';
     If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port, @Terminated) then begin
-      DebugStep := 'Is connected now?';
       ok := NC.Connected;
     end;
   Finally
     if not ok then begin
-      DebugStep := 'Destroying non connected';
       NC.FinalizeConnection;
     end;
   End;
-  DebugStep := 'Synchronizing notify final';
   TNetData.NetData.NotifyNodeServersUpdated;
 end;
 

@@ -38,6 +38,17 @@ Const
 type
   TMinerPrivateKey = (mpk_NewEachTime, mpk_Random, mpk_Selected);
 
+
+Type
+  TThreadActivate = Class(TThread)
+  protected
+    FFinished : PBoolean;
+    FFormCloseEvent : PRTLEvent;
+    procedure Execute; override;
+  public
+    constructor Create(finished : PBoolean; formCloseEvent : PRTLEvent);
+  end;
+
   { TFRMWallet }
 
   TFRMWallet = class(TForm)
@@ -165,6 +176,7 @@ type
     dgBlockChainExplorer: TDrawGrid;
     dgOperationsExplorer: TDrawGrid;
     MiFindOperationbyOpHash: TMenuItem;
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure TimerUpdateStatusTimer(Sender: TObject);
@@ -216,7 +228,6 @@ type
     Procedure CheckIsReady;
     Procedure FinishedLoadingApp;
   protected
-    { Private declarations }
     FNode : TNode;
     FIsActivated : Boolean;
     FWalletKeys : TWalletKeysExt;
@@ -271,6 +282,12 @@ type
     { Public declarations }
     Property WalletKeys : TWalletKeysExt read FWalletKeys;
     Property MinersBlocksFound : Integer read FMinersBlocksFound write SetMinersBlocksFound;
+  private
+
+    // TODO: remove all that kind of magic after healing  the design.
+    FDataLoadingThread : TThreadActivate;
+    FDataLoadingFinished : Boolean;
+    FFormCloseEvent : PRTLEvent;
   end;
 
 var
@@ -288,15 +305,14 @@ Uses UFolderHelper, UOpenSSL, UOpenSSLdef, UConst, UTime, UFileStorage,
   UThread, UOpTransaction, UECIES, UFRMPascalCoinWalletConfig,
   UFRMAbout, UFRMOperation, UFRMWalletKeys, UFRMPayloadDecoder, UFRMNodesIp;
 
-Type
-  TThreadActivate = Class(TPCThread)
-  protected
-    procedure BCExecute; override;
-  End;
+constructor TThreadActivate.Create(finished : PBoolean; formCloseEvent : PRTLEvent);
+begin
+  FFinished := finished;
+  FFormCloseEvent := formCloseEvent;
+  inherited Create(false);
+end;
 
-{ TThreadActivate }
-
-procedure TThreadActivate.BCExecute;
+procedure TThreadActivate.Execute;
 begin
   // Read Operations saved from disk
   TNode.Node.Bank.DiskRestoreFromOperations(CT_MaxBlock);
@@ -304,6 +320,12 @@ begin
   TNode.Node.NetServer.Active := true;
   Synchronize( FRMWallet.DoUpdateAccounts );
   Synchronize( FRMWallet.FinishedLoadingApp );
+
+  FFinished^ := true;
+
+  RTLeventWaitFor(FFormCloseEvent);
+
+  FRMWallet.Close;
 end;
 
 { TFRMWallet }
@@ -352,7 +374,10 @@ begin
     FAccountsGrid.Node := FNode;
     FOperationsAccountGrid.Node := FNode;
     // Reading database
-    TThreadActivate.Create(false).FreeOnTerminate := true;
+
+    FFormCloseEvent := RTLEventCreate;
+    FDataLoadingThread := TThreadActivate.Create(@FDataLoadingFinished, FFormCloseEvent);
+
     FNodeNotifyEvents.Node := FNode;
     // Init
     TNetData.NetData.OnReceivedHelloMessage := OnReceivedHelloMessage;
@@ -871,11 +896,25 @@ begin
   FPoolMiningServer := Nil;
 end;
 
+procedure TFRMWallet.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  RTLeventSetEvent(FFormCloseEvent);
+  if FDataLoadingFinished = false then begin
+    CloseAction := caHide;
+  end;
+end;
+
 procedure TFRMWallet.FormDestroy(Sender: TObject);
 var
   step : String;
 begin
   TLog.NewLog(ltinfo,Classname,'Destroying form - START');
+
+  FDataLoadingThread.Terminate;
+  FDataLoadingThread.WaitFor;
+  FreeAndNil(FDataLoadingThread);
+  RTLeventdestroy(FFormCloseEvent);
+
   Try
   FreeAndNil(FRPCServer);
   FreeAndNil(FPoolMiningServer);
