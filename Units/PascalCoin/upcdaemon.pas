@@ -107,7 +107,7 @@ var
     TLog.NewLog(ltInfo, ClassName, Format('RPC server is listening on %s:%d', [ip, port]));
     If FAppParams.GetValue(CT_PARAM_RPC_SAVELOGS, true) then begin
       FAppParams.SetValue(CT_PARAM_RPC_SAVELOGS, true);
-      FRPC.LogFileName := TFolderHelper.GetPascalCoinDataFolder + PathDelim + 'pascalcoin_rpc.log';
+      FRPC.LogFileName := TFolderHelper.GetPascalCoinDataFolder + PathDelim + 'pascallited_rpc.log';
       TLog.NewLog(ltInfo, ClassName, 'Activating RPC logs on file ' + FRPC.LogFileName);
     end else begin
       FAppParams.SetValue(CT_PARAM_RPC_SAVELOGS, false);
@@ -200,7 +200,7 @@ var
 
 begin
   FMInerServer := Nil;
-  TLog.NewLog(ltinfo,Classname,'START PascalCoin Server');
+  TLog.NewLog(ltinfo,Classname,'START PascalLite Server');
   try
     FWalletKeys := TWalletKeysExt.Create(Nil);
     try
@@ -252,7 +252,7 @@ begin
       FWalletKeys.Free;
     end;
   finally
-    TLog.NewLog(ltinfo,Classname,'EXIT PascalCoin Server');
+    TLog.NewLog(ltinfo,Classname,'EXIT PascalLite Server');
   end;
 end;
 
@@ -263,7 +263,7 @@ begin
   TLog.NewLog(ltinfo, Classname, Format('Loading config %s', [FAppParams.FileName]));
   If FAppParams.GetValue(CT_PARAM_SaveLogFiles, true) then begin
     _FLog.SaveTypes := CT_TLogTypes_ALL;
-    _FLog.FileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascalcoin_'+FormatDateTime('yyyymmddhhnn',Now)+'.log';
+    _FLog.FileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'pascallited_'+FormatDateTime('yyyymmddhhnn',Now)+'.log';
     FAppParams.SetValue(CT_PARAM_SaveLogFiles, true);
   end else begin
     FAppParams.SetValue(CT_PARAM_SaveLogFiles, false);
@@ -370,11 +370,11 @@ begin
   OldSignalHandler := FpSignal(SIGINT, @SignalHandler);
   {$ENDIF}
   WriteLn('');
-  WriteLn(formatDateTime('dd/mm/yyyy hh:nn:ss.zzz',now)+' Starting PascalCoin server');
+  WriteLn(formatDateTime('dd/mm/yyyy hh:nn:ss.zzz',now)+' Starting PascalLite server');
   _FLog.OnInThreadNewLog:=@OnPascalCoinInThreadLog;
   D:=DaemonDefs.Add as TDaemonDef;
-  D.DisplayName:='Pascal Coin Daemon';
-  D.Name:='PascalCoinDaemon';
+  D.DisplayName:='Pascal Lite Daemon';
+  D.Name:='PascalLiteDaemon';
   D.DaemonClassName:='TPCDaemon';
   D.WinBindings.ServiceType:=stWin32;
 end;
