@@ -16,7 +16,7 @@ Exchanges, processing systems, online shops can use console linux Daemon to cont
 
 ### Compilation steps
 
-1. Installing Free Pascal Compiler  
+1. Installing `Free Pascal Compiler`  
     There are 2 options to install Free Pascal Compiler:
     * On Ubuntu you can install package `fp-compiler-3.0.0`  
     * Or build Free Pascal Compiler from sources:  
@@ -26,7 +26,7 @@ Exchanges, processing systems, online shops can use console linux Daemon to cont
       cd fpc-3.0.2.x86_64-linux
       ./install.sh
       ```
-2. Building OpenSSL  
+2. Building `OpenSSL`  
     Download latest available OpenSSL 1.1.x source code [https://www.openssl.org/source/](https://www.openssl.org/source/)  (ex.: `openssl-1.1.0e.tar.gz`)
     ```bash
     tar -xvf openssl-1.1.0e.tar.gz
@@ -34,18 +34,22 @@ Exchanges, processing systems, online shops can use console linux Daemon to cont
     ./config shared --prefix=$(pwd)/output
     make install
     ```
-3. Get latest release at [https://github.com/xiphon/PascalLite/releases](https://github.com/xiphon/PascalLite/releases) or checkout bleeding edge development version of PascalLite's `master`  
-4. Change to the root of the source code directory, copy `libcrypto.so.1.1` from step 2, build PascalLite daemon  
+3. Installing `lazarus` package  
+    ```
+    sudo apt-get install lazarus
+    ```
+4. Get latest release at [https://github.com/xiphon/PascalLite/releases](https://github.com/xiphon/PascalLite/releases) or checkout bleeding edge development version of PascalLite's `master`  
+5. Change to the root of the source code directory, copy `libcrypto.so.1.1` from step 2, build PascalLite daemon  
     ```bash
     cd PascalLite
     cp <OPENSSL_FOLDER>/output/lib/libcrypto.so.1.1 .
-    fpc -FuUnits/PascalCoin/ -FuSynapse/lib/ -FuUnits/Utils/ pascalcoin_daemon.pp
+    fpc -FuUnits/PascalCoin/ -FuSynapse/lib/ -FuUnits/Utils/ pascallited.pp
     ```
-5. Run PascalLite daemon
+6. Run PascalLite daemon
     ```bash
-    ./pascalcoin_daemon -r
+    ./pascallited -r
     ```
-6. Configure daemon settings in `~/PascalLite/pascallite.ini`
+7. Configure daemon settings in `~/PascalLite/pascallite.ini`
 
 # License
  
