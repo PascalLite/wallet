@@ -3016,10 +3016,10 @@ var
 begin
 
   while true do begin;
-    repeat
+    while InterLockedExchange(TNetData.NetData.FBlockChainUpdateRequests, 0) = 0 do begin
       RTLeventWaitFor(TNetData.NetData.FBlockChainUpdateEvent);
       RTLeventResetEvent(TNetData.NetData.FBlockChainUpdateEvent);
-    until InterLockedExchange(TNetData.NetData.FBlockChainUpdateRequests, 0) <> 0;
+    end;
 
     if Terminated then begin
       break;
