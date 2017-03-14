@@ -59,7 +59,7 @@ fpc -FuUnits/PascalCoin/ -FuSynapse/lib/ -FuUnits/Utils/ pascallited.pp
 1. Run PascalLite daemon in background
 
   ```bash
-nohop ./pascallited -r &
+nohup ./pascallited -r &
   ```
 1. Configure daemon settings in `~/PascalLite/pascallite.ini`
 
