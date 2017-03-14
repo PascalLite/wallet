@@ -216,7 +216,6 @@ Type
     Function IndexOfNetClient(ListToSearch : TList; ip : AnsiString; port : Word; indexStart : Integer = 0) : Integer;
     Procedure DeleteNetClient(List : TList; index : Integer);
     Procedure CleanBlackList;
-    Procedure DiscoverServersTerminated(Sender : TObject);
   public
     Class function HeaderDataToText(const HeaderData : TNetHeaderData) : AnsiString;
     Class function ExtractHeaderInfo(buffer : TStream; var HeaderData : TNetHeaderData; DataBuffer : TStream; var IsValidHeaderButNeedMoreData : Boolean) : Boolean;
@@ -377,11 +376,13 @@ Type
   End;
 
   TThreadDiscoverConnection = Class(TThread)
+  private
     FNodeServerAddress : TNodeServerAddress;
+    FNetData : TNetData;
   protected
     procedure Execute; override;
   public
-    Constructor Create(NodeServerAddress: TNodeServerAddress; NotifyOnTerminate : TNotifyEvent);
+    Constructor Create(NodeServerAddress: TNodeServerAddress; netData : TNetData);
   End;
 
 
@@ -889,7 +890,7 @@ begin
       for i := 0 to j do begin
         P := PNodeServerAddress(l[i]);
         InterLockedIncrement(FDiscoveringThreadsCount);
-        tdc := TThreadDiscoverConnection.Create(P^, DiscoverServersTerminated);
+        tdc := TThreadDiscoverConnection.Create(P^, Self);
         FDiscoveringThreads.Add(tdc);
       end;
     Finally
@@ -903,22 +904,6 @@ end;
 function TNetData.IsDiscoveringServers : Boolean;
 begin
   Result := DiscoveringThreadsCount > 0;
-end;
-
-procedure TNetData.DiscoverServersTerminated(Sender: TObject);
-begin
-  NotifyNodeServersUpdated;
-
-  FDiscoveringThreads.Remove(Sender);
-  InterLockedDecrement(FDiscoveringThreadsCount);
-  if IsDiscoveringServers then begin
-    exit;
-  end;
-
-  // If here, discover servers finished, so we can try to get/receive data
-  TLog.NewLog(ltDebug,Classname,Format('Discovering servers finished. Now we have %d active connections and %d connections to other servers',
-    [ConnectionsCount(false),ConnectionsCount(true)]));
-  ForceBlockchainUpdate;
 end;
 
 procedure TNetData.ForceBlockchainUpdate;
@@ -2878,8 +2863,6 @@ begin
   end;
 end;
 
-{ TThreadDiscoverConnection }
-
 procedure TThreadDiscoverConnection.Execute;
 Var NC : TNetClient;
   ok : Boolean;
@@ -2887,43 +2870,51 @@ Var NC : TNetClient;
   i : Integer;
   Pnsa : PNodeServerAddress;
 begin
-  TLog.NewLog(ltInfo,Classname,'Starting discovery of connection '+FNodeServerAddress.ip+':'+InttoStr(FNodeServerAddress.port));
-  Pnsa := Nil;
-  // Register attempt
-  lns := TNetData.NetData.FNodeServers.LockList;
   try
-    i := TNetData.NetData.IndexOfNetClient(lns,FNodeServerAddress.ip,FNodeServerAddress.port);
-    if i>=0 then begin
-      Pnsa := PNodeServerAddress(lns[i]);
-      Pnsa.last_attempt_to_connect := Now;
-      Inc(Pnsa.total_failed_attemps_to_connect);
+    TLog.NewLog(ltInfo,Classname,'Starting discovery of connection '+FNodeServerAddress.ip+':'+InttoStr(FNodeServerAddress.port));
+    Pnsa := Nil;
+    // Register attempt
+    lns := TNetData.NetData.FNodeServers.LockList;
+    try
+      i := TNetData.NetData.IndexOfNetClient(lns,FNodeServerAddress.ip,FNodeServerAddress.port);
+      if i>=0 then begin
+        Pnsa := PNodeServerAddress(lns[i]);
+        Pnsa.last_attempt_to_connect := Now;
+        Inc(Pnsa.total_failed_attemps_to_connect);
+      end;
+    finally
+      TNetData.NetData.FNodeServers.UnlockList;
     end;
+    TNetData.NetData.NotifyNodeServersUpdated;
+    // Try to connect
+    ok := false;
+    NC := TNetClient.Create(Nil);
+    Try
+      If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port, @Terminated) then begin
+        ok := NC.Connected;
+      end;
+    Finally
+      if not ok then begin
+        NC.FinalizeConnection;
+      end;
+    End;
+    TNetData.NetData.NotifyNodeServersUpdated;
+
+    FNetData.NotifyNodeServersUpdated;
   finally
-    TNetData.NetData.FNodeServers.UnlockList;
+    FNetData.FDiscoveringThreads.Remove(Self);
+    if InterLockedDecrement(FNetData.FDiscoveringThreadsCount) = 1 then begin
+      FNetData.ForceBlockchainUpdate;
+    end;
   end;
-  TNetData.NetData.NotifyNodeServersUpdated;
-  // Try to connect
-  ok := false;
-  NC := TNetClient.Create(Nil);
-  Try
-    If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port, @Terminated) then begin
-      ok := NC.Connected;
-    end;
-  Finally
-    if not ok then begin
-      NC.FinalizeConnection;
-    end;
-  End;
-  TNetData.NetData.NotifyNodeServersUpdated;
 end;
 
-constructor TThreadDiscoverConnection.Create(NodeServerAddress: TNodeServerAddress; NotifyOnTerminate : TNotifyEvent);
+constructor TThreadDiscoverConnection.Create(NodeServerAddress: TNodeServerAddress; netData : TNetData);
 begin
   FNodeServerAddress := NodeServerAddress;
-  inherited Create(true);
-  OnTerminate := NotifyOnTerminate;
+  FNetData := netData;
   FreeOnTerminate := true;
-  Suspended := false;
+  inherited Create(false);
 end;
 
 { TThreadCheckConnections }
