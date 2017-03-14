@@ -10,7 +10,7 @@
       </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="pascalcoin_daemon"/>
+      <Title Value="pascallited"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
@@ -35,7 +35,7 @@
     </RunParams>
     <Units Count="8">
       <Unit0>
-        <Filename Value="pascalcoin_daemon.pp"/>
+        <Filename Value="pascallited.pp"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
@@ -72,7 +72,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="pascalcoin_daemon"/>
+      <Filename Value="pascallited"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
