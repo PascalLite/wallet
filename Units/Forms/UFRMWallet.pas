@@ -393,11 +393,6 @@ begin
   end;
   UpdatePrivateKeys;
   UpdateAccounts(false);
-  if FAppParams.GetValue(CT_PARAM_FirstTime, true) then begin
-    FAppParams.SetValue(CT_PARAM_FirstTime, false);
-    miAboutPascalCoinClick(Nil);
-  end;
-
 end;
 
 procedure TFRMWallet.ApplicationEventsMinimize(Sender: TObject);

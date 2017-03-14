@@ -16,16 +16,13 @@ Exchanges, processing systems, online shops can use console linux Daemon to cont
 
 ### Compilation steps
 
-1. Installing `Free Pascal Compiler`  
-    There are 2 options to install Free Pascal Compiler:
-    * On Ubuntu you can install package `fp-compiler-3.0.0`  
-    * Or build Free Pascal Compiler from sources:  
-      Download FPC source code version appropriate to your platform (ex.: `fpc-3.0.2.x86_64-linux.tar`) from [https://sourceforge.net/projects/freepascal/files/Linux/3.0.2/](https://sourceforge.net/projects/freepascal/files/Linux/3.0.2/)
-      ```bash
-      tar -xvf fpc-3.0.2.x86_64-linux.tar
-      cd fpc-3.0.2.x86_64-linux
-      ./install.sh
-      ```
+1. Building `Free Pascal Compiler`  
+    Download FPC source code version appropriate to your platform (ex.: `fpc-3.0.2.x86_64-linux.tar`) from [https://sourceforge.net/projects/freepascal/files/Linux/3.0.2/](https://sourceforge.net/projects/freepascal/files/Linux/3.0.2/)
+    ```bash
+    tar -xvf fpc-3.0.2.x86_64-linux.tar
+    cd fpc-3.0.2.x86_64-linux
+    ./install.sh
+    ```
 2. Building `OpenSSL`  
     Download latest available OpenSSL 1.1.x source code [https://www.openssl.org/source/](https://www.openssl.org/source/)  (ex.: `openssl-1.1.0e.tar.gz`)
     ```bash

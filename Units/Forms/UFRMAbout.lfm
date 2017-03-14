@@ -1,14 +1,14 @@
 object FRMAbout: TFRMAbout
-  Left = 291
-  Height = 405
-  Top = 184
-  Width = 585
+  Left = 488
+  Height = 213
+  Top = 215
+  Width = 520
   ActiveControl = bbClose
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'About...'
-  ClientHeight = 405
-  ClientWidth = 585
+  ClientHeight = 213
+  ClientWidth = 520
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -17,7 +17,7 @@ object FRMAbout: TFRMAbout
   Position = poOwnerFormCenter
   LCLVersion = '1.6.2.0'
   object Label1: TLabel
-    Left = 224
+    Left = 191
     Height = 25
     Top = 8
     Width = 119
@@ -30,9 +30,9 @@ object FRMAbout: TFRMAbout
     ParentFont = False
   end
   object lblBuild: TLabel
-    Left = 15
+    Left = 16
     Height = 13
-    Top = 356
+    Top = 160
     Width = 30
     Caption = 'Build:'
     Font.Color = clWindowText
@@ -43,9 +43,9 @@ object FRMAbout: TFRMAbout
     ParentFont = False
   end
   object lblProtocolVersion: TLabel
-    Left = 15
+    Left = 16
     Height = 13
-    Top = 375
+    Top = 179
     Width = 50
     Caption = 'Protocol:'
     Font.Color = clWindowText
@@ -56,17 +56,17 @@ object FRMAbout: TFRMAbout
     ParentFont = False
   end
   object Label2: TLabel
-    Left = 90
+    Left = 16
     Height = 13
-    Top = 320
+    Top = 104
     Width = 65
     Caption = 'Source Code:'
     ParentColor = False
   end
   object Label3: TLabel
-    Left = 90
+    Left = 16
     Height = 13
-    Top = 339
+    Top = 123
     Width = 135
     Caption = 'Check For New Versions:'
     Font.Color = clWindowText
@@ -78,11 +78,11 @@ object FRMAbout: TFRMAbout
   end
   object Label4: TLabel
     Cursor = crHandPoint
-    Left = 170
+    Left = 96
     Height = 13
-    Top = 320
-    Width = 280
-    Caption = 'https://bitcointalk.org/index.php?topic=1773026'
+    Top = 104
+    Width = 215
+    Caption = 'https://github.com/xiphon/PascalLite'
     Font.Color = clBlue
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -93,9 +93,9 @@ object FRMAbout: TFRMAbout
   end
   object Label5: TLabel
     Cursor = crHandPoint
-    Left = 237
+    Left = 163
     Height = 13
-    Top = 339
+    Top = 123
     Width = 280
     Caption = 'https://bitcointalk.org/index.php?topic=1773026'
     Font.Color = clBlue
@@ -107,42 +107,25 @@ object FRMAbout: TFRMAbout
     OnClick = Label5Click
   end
   object Memo1: TMemo
-    Left = 72
-    Height = 266
+    Left = 16
+    Height = 50
     Top = 46
-    Width = 478
+    Width = 486
     BorderStyle = bsNone
     Lines.Strings = (
-      'Copyright (c) 2016 Albert Molina'
-      ''
-      'This software is a Clone of the Pascal Coin P2P Cryptocurrency. A Crypto currency without '
-      'need of historical operations. It can be used to Mine and Explore blocks and operations.'
-      ''
-      'Distributed under the MIT software license, see the accompanying file LICENSE  or visit '
-      'http://www.opensource.org/licenses/mit-license.php.'
-      ''
-      'THIS IS EXPERIMENTAL SOFTWARE. Use it for educational purposes only.'
-      ''
-      'This product includes software developed by the OpenSSL Project and Denis Grinyuk '
-      '(https://github.com/Arvur/OpenSSL-Delphi), some cryptographic functions inspirated in code '
-      'written by Ladar Levison and Marco Ferrante, and Synapse Socket code copyright of Lukas '
-      'Gebauer.'
-      'Original source code is written in Pascal Language and is available at '
-      'https://github.com/PascalCoin/PascalCoin'
-      ''
-      'If you like it, consider a donation using BitCoin:'
-      '16K3HCZRhFUtM8GdWRcfKeaa6KsuyxZaYk'
+      'PascalLite is a P2P Cryptocurrency with human-friendly account numbers (addresses) and '
+      'without need of keeping historical opeartions, blockchain can be safely removed without any '
+      'harm to users accounts and balances.'
     )
     ParentColor = True
     ReadOnly = True
-    ScrollBars = ssAutoBoth
     TabOrder = 0
   end
   object bbClose: TBitBtn
-    Left = 456
+    Left = 392
     Height = 31
-    Top = 358
-    Width = 111
+    Top = 161
+    Width = 112
     Caption = 'Close'
     Kind = bkOK
     ModalResult = 1
