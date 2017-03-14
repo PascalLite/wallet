@@ -1,4 +1,4 @@
-program pascalcoin_daemon;
+program pascallited;
 
 {$mode objfpc}{$H+}
 {$define usecthreads}
@@ -14,7 +14,7 @@ uses
 
 
 begin
-  Application.Title:='PascalCoin Daemon application';
+  Application.Title:='PascalLite Daemon application';
   RegisterDaemonClass(TPCDaemon);
   RegisterDaemonMapper(TPCDaemonMapper);
   TCrypto.InitCrypto;
