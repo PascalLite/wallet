@@ -1,4 +1,4 @@
-program PascalCoinWallet;
+program PascalLiteWallet;
 
 uses
   Forms,
@@ -18,7 +18,7 @@ uses
   UFolderHelper in 'Units\Utils\UFolderHelper.pas',
   UAppParams in 'Units\Utils\UAppParams.pas',
   UGridUtils in 'Units\Utils\UGridUtils.pas',
-  UFRMPascalCoinWalletConfig in 'Units\Forms\UFRMPascalCoinWalletConfig.pas' {FRMPascalCoinWalletConfig},
+  UFRMWalletConfig in 'Units\Forms\UFRMWalletConfig.pas',
   UFRMAbout in 'Units\Forms\UFRMAbout.pas' {FRMAbout},
   UFRMOperation in 'Units\Forms\UFRMOperation.pas' {FRMOperation},
   UFRMWalletKeys in 'Units\Forms\UFRMWalletKeys.pas' {FRMWalletKeys},

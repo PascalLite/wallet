@@ -1,4 +1,4 @@
-unit UFRMPascalCoinWalletConfig;
+unit UFRMWalletConfig;
 
 {$IFDEF FPC}
   {$MODE Delphi}
@@ -33,9 +33,7 @@ type
 
   TMinerPrivateKey = (mpk_NewEachTime, mpk_Random, mpk_Selected);
 
-  { TFRMPascalCoinWalletConfig }
-
-  TFRMPascalCoinWalletConfig = class(TForm)
+  TFRMWalletConfig = class(TForm)
     cbJSONRPCMinerServerActive: TCheckBox;
     ebDefaultFee: TEdit;
     lbMiningServerBindIpDefault: TLabel;
@@ -99,7 +97,7 @@ uses UConst, UAccounts, ULog, UCrypto, UFolderHelper;
   {$R *.lfm}
 {$ENDIF}
 
-procedure TFRMPascalCoinWalletConfig.bbOkClick(Sender: TObject);
+procedure TFRMWalletConfig.bbOkClick(Sender: TObject);
 Var
   df : Int64;
   mpk : TMinerPrivateKey;
@@ -148,7 +146,7 @@ begin
   ModalResult := MrOk;
 end;
 
-procedure TFRMPascalCoinWalletConfig.bbOpenDataFolderClick(Sender: TObject);
+procedure TFRMWalletConfig.bbOpenDataFolderClick(Sender: TObject);
 begin
   {$IFDEF FPC}
   OpenDocument(pchar(TFolderHelper.GetPascalCoinDataFolder))
@@ -157,7 +155,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TFRMPascalCoinWalletConfig.bbUpdatePasswordClick(Sender: TObject);
+procedure TFRMWalletConfig.bbUpdatePasswordClick(Sender: TObject);
 Var s,s2 : String;
 begin
   if Not Assigned(FWalletKeys) then exit;
@@ -185,12 +183,12 @@ begin
   UpdateWalletConfig;
 end;
 
-procedure TFRMPascalCoinWalletConfig.cbSaveLogFilesClick(Sender: TObject);
+procedure TFRMWalletConfig.cbSaveLogFilesClick(Sender: TObject);
 begin
   cbSaveDebugLogs.Enabled := cbSaveLogFiles.Checked;
 end;
 
-procedure TFRMPascalCoinWalletConfig.FormCreate(Sender: TObject);
+procedure TFRMWalletConfig.FormCreate(Sender: TObject);
 begin
   InternetServerPortDefault.Caption := Format('Default %d', [CT_NetServer_Port]);
   RPCServerPortDefault.Caption := Format('Default %d',[CT_RPC_DEFAULT_PORT]);
@@ -204,7 +202,7 @@ begin
   UpdateWalletConfig;
 end;
 
-procedure TFRMPascalCoinWalletConfig.SetAppParams(const Value: TAppParams);
+procedure TFRMWalletConfig.SetAppParams(const Value: TAppParams);
 begin
   FAppParams := Value;
   if Not Assigned(Value) then exit;
@@ -238,14 +236,14 @@ begin
   cbSaveLogFilesClick(nil);
 end;
 
-procedure TFRMPascalCoinWalletConfig.SetWalletKeys(const Value: TWalletKeys);
+procedure TFRMWalletConfig.SetWalletKeys(const Value: TWalletKeys);
 begin
   FWalletKeys := Value;
   UpdateWalletConfig;
 end;
 
 
-procedure TFRMPascalCoinWalletConfig.UpdateWalletConfig;
+procedure TFRMWalletConfig.UpdateWalletConfig;
 Var i, iselected : Integer;
   s : String;
   wk : TWalletKey;
