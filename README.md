@@ -9,7 +9,7 @@ Exchanges, processing systems, online shops can use console linux Daemon to cont
 ## Wallet (Windows/Ubuntu)
 
 1. Install Lazarus IDE 
-2. Open `PascalCoinWalletLazarus.lpi`
+2. Open `PascalLiteWallet.lpi`
 3. Run -> Compile (CTRL + F9)
 
 ## Daemon (Linux)

@@ -11,7 +11,7 @@
       </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="PascalCoinWalletLazarus"/>
+      <Title Value="PascalLiteWallet"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
       <Icon Value="0"/>
@@ -40,7 +40,7 @@
     </RequiredPackages>
     <Units Count="34">
       <Unit0>
-        <Filename Value="PascalCoinWalletLazarus.dpr"/>
+        <Filename Value="PascalLiteWallet.dpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
@@ -111,9 +111,9 @@
         <IsPartOfProject Value="True"/>
       </Unit16>
       <Unit17>
-        <Filename Value="Units\Forms\UFRMPascalCoinWalletConfig.pas"/>
+        <Filename Value="Units\Forms\UFRMWalletConfig.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="FRMPascalCoinWalletConfig"/>
+        <ComponentName Value="FRMWalletConfig"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit17>
@@ -205,7 +205,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="PascalCoinWalletLazarus"/>
+      <Filename Value="PascalLiteWallet"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>

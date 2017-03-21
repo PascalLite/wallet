@@ -300,7 +300,7 @@ implementation
 {$ENDIF}
 
 Uses UFolderHelper, UOpenSSL, UOpenSSLdef, UConst, UTime, UFileStorage,
-  UThread, UOpTransaction, UECIES, UFRMPascalCoinWalletConfig,
+  UThread, UOpTransaction, UECIES, UFRMWalletConfig,
   UFRMAbout, UFRMOperation, UFRMWalletKeys, UFRMPayloadDecoder, UFRMNodesIp;
 
 constructor TThreadActivate.Create;
@@ -1165,7 +1165,7 @@ end;
 
 procedure TFRMWallet.miOptionsClick(Sender: TObject);
 begin
-  With TFRMPascalCoinWalletConfig.Create(Self) do
+  With TFRMWalletConfig.Create(Self) do
   try
     AppParams := Self.FAppParams;
     WalletKeys := Self.FWalletKeys;
