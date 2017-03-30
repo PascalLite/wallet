@@ -214,6 +214,7 @@ end;
 
 destructor TAccountsGrid.Destroy;
 begin
+  FNodeNotifyEvents.Node := nil;
   FNodeNotifyEvents.Free;
   FAccountsList.Free;
   inherited;
@@ -588,6 +589,7 @@ end;
 destructor TOperationsGrid.Destroy;
 begin
   FOperationsResume.Free;
+  FNodeNotifyEvents.Node := nil;
   FNodeNotifyEvents.Free;
   inherited;
 end;

@@ -100,16 +100,17 @@ type
 
   TBufferedNetTcpIpClient = Class;
 
-  TBufferedNetTcpIpClientThread = Class(TPCThread)
+  TBufferedNetTcpIpClientThread = Class(TThread)
     FBufferedNetTcpIpClient : TBufferedNetTcpIpClient;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(ABufferedNetTcpIpClient : TBufferedNetTcpIpClient);
   End;
 
   TBufferedNetTcpIpClient = Class(TNetTcpIpClient)
   private
+    FDataAvailableEvent : PRTLEvent;
     FSendBuffer : TMemoryStream;
     FReadBuffer : TMemoryStream;
     FCritical : TCriticalSection;
@@ -125,30 +126,30 @@ type
     Function ReadBufferLock : TMemoryStream;
     Procedure ReadBufferUnlock;
     Property LastReadTC : Cardinal read FLastReadTC;
+    function WaitDataAvailable(waitMilliseconds : Integer) : Boolean;
   End;
 
   {$IFDEF Synapse}
   TNetTcpIpServer = Class;
   TTcpIpServerListenerThread = Class;
 
-  TTcpIpSocketThread = Class(TPCThread)
+  TTcpIpSocketThread = Class(TThread)
   private
     FSock: TTCPBlockSocket;
     FListenerThread : TTcpIpServerListenerThread;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(AListenerThread : TTcpIpServerListenerThread; ASocket : TSocket);
     Destructor Destroy; override;
   End;
 
-  TTcpIpServerListenerThread = Class(TPCThread)
+  TTcpIpServerListenerThread = Class(TThread)
   private
     FNetTcpIpServerServer : TNetTcpIpServer;
     FServerSocket : TTCPBlockSocket;
-    FTcpIpSocketsThread : TPCThreadList;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(ANetTcpIpServer : TNetTcpIpServer);
     Destructor Destroy; override;
@@ -175,7 +176,7 @@ type
     procedure OnTcpServerAccept(Sender: TObject; ClientSocket: TTCPBlockSocket);
     procedure SetNetTcpIpClientClass(const Value: TNetTcpIpClientClass);
   protected
-    Procedure OnNewIncommingConnection(Sender : TObject; Client : TNetTcpIpClient); virtual;
+    Procedure OnNewIncommingConnection(Sender : TObject; Client : TNetTcpIpClient); virtual; abstract;
     procedure SetActive(const Value: Boolean); virtual;
   public
     Constructor Create; virtual;
@@ -530,10 +531,10 @@ end;
 
 { TBufferedNetTcpIpClientThread }
 
-procedure TBufferedNetTcpIpClientThread.BCExecute;
+procedure TBufferedNetTcpIpClientThread.Execute;
 var SendBuffStream : TStream;
   ReceiveBuffer : Array[0..4095] of byte;
-  Procedure DoReceiveBuf;
+  procedure DoReceiveBuf;
   var last_bytes_read : Integer;
     ms : TMemoryStream;
     lastpos : Int64;
@@ -544,8 +545,11 @@ var SendBuffStream : TStream;
         if last_bytes_read<>0 then begin
           // This is to prevent a 4096 buffer transmission only... and a loop
           If Not FBufferedNetTcpIpClient.DoWaitForDataInherited(10) then begin
-            if FBufferedNetTcpIpClient.SocketError<>0 then FBufferedNetTcpIpClient.Disconnect
-            else exit;
+            if FBufferedNetTcpIpClient.SocketError<>0 then begin
+              FBufferedNetTcpIpClient.Disconnect
+            end else begin
+              exit;
+            end;
           end;
         end;
 
@@ -559,6 +563,7 @@ var SendBuffStream : TStream;
             ms.Write(ReceiveBuffer,last_bytes_read);
             ms.Position := lastpos;
             TLog.NewLog(ltdebug,ClassName,Format('Received %d bytes. Buffer length: %d bytes',[last_bytes_read,ms.Size]));
+            RTLeventSetEvent(FBufferedNetTcpIpClient.FDataAvailableEvent);
           Finally
             FBufferedNetTcpIpClient.ReadBufferUnlock;
           End;
@@ -593,8 +598,10 @@ begin
     while (Not Terminated) do begin
       while (Not Terminated) And (Not FBufferedNetTcpIpClient.Connected) do sleep(100);
       if (FBufferedNetTcpIpClient.Connected) then begin
-        // Receive data
-        DoReceiveBuf;
+        if FBufferedNetTcpIpClient.DoWaitForDataInherited(0) then begin
+          DoReceiveBuf;
+        end;
+
         // Send Data
         DoSendBuf;
       end else FBufferedNetTcpIpClient.FLastReadTC := GetTickCount;
@@ -618,6 +625,7 @@ end;
 constructor TBufferedNetTcpIpClient.Create(AOwner: TComponent);
 begin
   inherited;
+  FDataAvailableEvent := RTLEventCreate;
   FLastReadTC := GetTickCount;
   FCritical := SyncObjs.TCriticalSection.Create;
   FSendBuffer := TMemoryStream.Create;
@@ -633,6 +641,7 @@ begin
   FreeAndNil(FCritical);
   FreeAndNil(FReadBuffer);
   FreeAndNil(FSendBuffer);
+  RTLeventdestroy(FDataAvailableEvent);
   inherited;
 end;
 
@@ -681,10 +690,37 @@ begin
   end;
 end;
 
-{ TNetTcpIpServer }
+function TBufferedNetTcpIpClient.WaitDataAvailable(waitMilliseconds : Integer) : Boolean;
+var
+  i : Cardinal;
+begin
+  Result := false;
+  for i := 0 to 1 do
+  begin
+    FCritical.Acquire;
+    try
+      if FReadBuffer.Size > 0 then
+      begin
+        Result := true;
+        exit;
+      end;
+      if i = 0 then
+      begin
+        RTLeventResetEvent(FDataAvailableEvent);
+      end;
+    finally
+      FCritical.Release;
+    end;
+    if i = 0 then
+    begin
+      RTLeventWaitFor(FDataAvailableEvent, waitMilliseconds);
+    end;
+  end;
+end;
 
 constructor TNetTcpIpServer.Create;
 begin
+  inherited;
   FNetTcpIpClientClass := TNetTcpIpClient;
   FTcpIpServer := Nil;
   FIp := '0.0.0.0';
@@ -705,8 +741,8 @@ begin
   {$IFDEF DelphiSockets}
   FreeAndNil(FTcpIpServer);
   {$ENDIF}
-  inherited;
   FreeAndNil(FNetClients);
+  inherited;
 end;
 
 function TNetTcpIpServer.GetActive: Boolean;
@@ -735,11 +771,6 @@ end;
 procedure TNetTcpIpServer.NetTcpIpClientsUnlock;
 begin
   FNetClients.UnlockList;
-end;
-
-procedure TNetTcpIpServer.OnNewIncommingConnection(Sender: TObject; Client: TNetTcpIpClient);
-begin
-  //
 end;
 
 procedure TNetTcpIpServer.OnTcpServerAccept(Sender: TObject; ClientSocket: TTCPBlockSocket);
@@ -823,59 +854,66 @@ begin
 end;
 
 {$IFDEF Synapse}
-{ TTcpIpServerListenerThread }
 
-procedure TTcpIpServerListenerThread.BCExecute;
-var ClientSocket: TSocket;
-    ClientThread: TTcpIpSocketThread;
-    lSockets : TList;
-    i : Integer;
+procedure TTcpIpServerListenerThread.Execute;
+var
+  clientSocket: TSocket;
+  clientThread: TTcpIpSocketThread;
+  sockets : TList;
+  i : Integer;
 begin
   FServerSocket.CreateSocket;
   if FServerSocket.LastError<>0 then begin
     TLog.NewLog(lterror,Classname,'Error initializing the socket: '+FServerSocket.GetErrorDescEx);
     exit;
   end;
-  FServerSocket.Family := SF_IP4;
-  FServerSocket.SetLinger(true,10000);
-  FServerSocket.Bind(FNetTcpIpServerServer.Ip, IntToStr(FNetTcpIpServerServer.Port));
-  if FServerSocket.LastError<>0 then begin
-    TLog.NewLog(lterror,Classname,'Cannot bind port '+IntToStr(FNetTcpIpServerServer.Port)+': '+FServerSocket.GetErrorDescEx);
-    exit;
-  end;
-  FServerSocket.Listen;
-  lSockets := TList.Create;
   try
-    while (Not Terminated) And (FNetTcpIpServerServer.Active) do begin
-      If (FServerSocket.CanRead(100)) And (lSockets.Count<FNetTcpIpServerServer.MaxConnections) then begin
-        ClientSocket := FServerSocket.Accept;
-        if FServerSocket.LastError = 0 then begin
-          ClientThread := TTcpIpSocketThread.Create(Self,ClientSocket);
-          lSockets.Add(ClientThread);
-          ClientThread.Suspended := false;
-        end;
-      end;
-      // Clean finished threads
-      for i := lSockets.Count - 1 downto 0 do begin
-        ClientThread := TTcpIpSocketThread(lSockets[i]);
-        if ClientThread.Terminated then begin
-          lSockets.Delete(i);
-          ClientThread.Free;
-        end;
-      end;
-      // FIXME: Must not have a sleep here
-      sleep(10)
-    End;
-  finally
-    // Finalize all threads
-    for i := 0 to lSockets.Count - 1 do begin
-      // Here we no wait until terminated...
-      TTcpIpSocketThread(lSockets[i]).FListenerThread := Nil;
-      TTcpIpSocketThread(lSockets[i]).Terminate;
-      TTcpIpSocketThread(lSockets[i]).WaitFor;
-      TTcpIpSocketThread(lSockets[i]).Free;
+    FServerSocket.Family := SF_IP4;
+    FServerSocket.SetLinger(true,10000);
+    FServerSocket.Bind(FNetTcpIpServerServer.Ip, IntToStr(FNetTcpIpServerServer.Port));
+    if FServerSocket.LastError<>0 then begin
+      TLog.NewLog(lterror,Classname,'Cannot bind port '+IntToStr(FNetTcpIpServerServer.Port)+': '+FServerSocket.GetErrorDescEx);
+      exit;
     end;
-    lSockets.free;
+    FServerSocket.Listen;
+    sockets := TList.Create;
+    try
+      while (Not Terminated) And (FNetTcpIpServerServer.Active) do
+      begin
+        If (FServerSocket.CanRead(100)) And (sockets.Count < FNetTcpIpServerServer.MaxConnections) then
+        begin
+          clientSocket := FServerSocket.Accept;
+          if FServerSocket.LastError = 0 then begin
+            clientThread := TTcpIpSocketThread.Create(Self, clientSocket);
+            sockets.Add(ClientThread);
+            clientThread.Suspended := false;
+          end;
+        end;
+        // Clean finished threads
+        for i := sockets.Count - 1 downto 0 do
+        begin
+          clientThread := TTcpIpSocketThread(sockets[i]);
+          if clientThread.Finished then
+          begin
+            sockets.Delete(i);
+            clientThread.Free;
+          end;
+        end;
+      end;
+    finally
+      // Finalize all threads
+      for i := 0 to sockets.Count - 1 do
+      begin
+        // Here we no wait until terminated...
+        TTcpIpSocketThread(sockets[i]).FListenerThread := Nil;
+        TTcpIpSocketThread(sockets[i]).Terminate;
+        TTcpIpSocketThread(sockets[i]).WaitFor;
+        TTcpIpSocketThread(sockets[i]).Free;
+      end;
+      sockets.free;
+    end;
+  finally
+    FServerSocket.CloseSocket;
   end;
 end;
 
@@ -892,14 +930,6 @@ begin
   FNetTcpIpServerServer.FTcpIpServer := Nil;
   FServerSocket.Free;
   inherited;
-end;
-
-{ TTcpIpSocketThread }
-
-procedure TTcpIpSocketThread.BCExecute;
-begin
-  if (Not Terminated) And (Assigned(FSock)) And (Assigned(FListenerThread)) then
-    FListenerThread.FNetTcpIpServerServer.OnTcpServerAccept(Self,FSock);
 end;
 
 constructor TTcpIpSocketThread.Create(AListenerThread: TTcpIpServerListenerThread; ASocket: TSocket);
@@ -929,6 +959,12 @@ begin
     end;
   End;
   inherited;
+end;
+
+procedure TTcpIpSocketThread.Execute;
+begin
+  if (Not Terminated) And (Assigned(FSock)) And (Assigned(FListenerThread)) then
+    FListenerThread.FNetTcpIpServerServer.OnTcpServerAccept(Self,FSock);
 end;
 
 {$ENDIF}

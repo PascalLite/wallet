@@ -73,13 +73,11 @@ begin
 end;
 
 procedure TPCThread.Execute;
-var
-  i : Integer;
 begin
   FStartTickCount := GetTickCount;
   FDebugStep := '';
   try
-    TLog.NewLog(ltdebug,Classname,'Starting Thread in pos '+inttostr(i+1));
+    TLog.NewLog(ltdebug,Classname,'Starting Thread');
     Try
       Try
         BCExecute;

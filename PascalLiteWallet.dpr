@@ -49,7 +49,7 @@ uses
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
+  Application.{%H-}MainFormOnTaskbar := True;
   Application.Title := 'Pascal Lite Wallet, Miner & Explorer';
   Application.CreateForm(TFRMWallet, FRMWallet);
   Application.Run;

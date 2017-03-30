@@ -1799,26 +1799,30 @@ var
   ClientSock:TSocket;
 begin
   FServerSocket.CreateSocket;
-  FServerSocket.SetLinger(true, 10000);
-  FServerSocket.Bind(FBindIp, Inttostr(FPort));
-  if FServerSocket.LastError = 0 then begin
-    FServerSocket.Listen;
-    repeat
-      if Terminated then break;
-      Try
-        if FServerSocket.CanRead(1000) then begin
-          ClientSock := FServerSocket.Accept;
-          if FServerSocket.lastError = 0 then begin
-            TRPCProcess.Create(ClientSock);
+  try
+    FServerSocket.SetLinger(true, 10000);
+    FServerSocket.Bind(FBindIp, Inttostr(FPort));
+    if FServerSocket.LastError = 0 then begin
+      FServerSocket.Listen;
+      repeat
+        if Terminated then break;
+        Try
+          if FServerSocket.CanRead(1000) then begin
+            ClientSock := FServerSocket.Accept;
+            if FServerSocket.lastError = 0 then begin
+              TRPCProcess.Create(ClientSock);
+            end;
           end;
-        end;
-      Except
-        On E:Exception do begin
-          TLog.NewLog(ltError, Classname, 'Error ' + E.ClassName + ':' + E.Message);
-        end;
-      End;
-      sleep(1);
-    until false;
+        Except
+          On E:Exception do begin
+            TLog.NewLog(ltError, Classname, 'Error ' + E.ClassName + ':' + E.Message);
+          end;
+        End;
+        sleep(1);
+      until false;
+    end;
+  finally
+    FServerSocket.CloseSocket;
   end;
 
   if Assigned(FOnTerminate) then begin

@@ -150,8 +150,8 @@ Type
   public
     Constructor Create;
     Destructor Destroy; override;
-    function AccountsCount: Integer;
-    Function BlocksCount : Integer;
+    function AccountsCount : Cardinal;
+    Function BlocksCount : Cardinal;
     Procedure CopyFrom(accounts : TPCSafeBox);
     Class Function CalcBlockHash(const block : TBlockAccount):AnsiString;
     Class Function BlockAccountToText(Const block : TBlockAccount):AnsiString;
@@ -219,7 +219,15 @@ Type
   End;
 
 Const
-  CT_Account_NUL : TAccount = (account:0;accountkey:(EC_OpenSSL_NID:0;x:'';y:'');balance:0;updated_block:0;n_operation:0);
+  CT_Account_NUL : TAccount = (account: 0;
+                               accountkey: (EC_OpenSSL_NID: 0;
+                                            x: '';
+                                            y: '');
+                               balance: 0;
+                               updated_block: 0;
+                               n_operation: 0;
+                               previous_updated_block: 0);
+
   CT_BlockAccount_NUL : TBlockAccount = (
     blockaccount:0;
     accounts:(
@@ -586,7 +594,7 @@ begin
     exit;
   end;
   try
-    s := StringReplace(moneytxt,ThousandSeparator,'',[rfReplaceAll]);
+    s := StringReplace(moneytxt, DefaultFormatSettings.ThousandSeparator, '', [rfReplaceAll]);
     money := Round( StrToFloat(s)*10000 );
     Result := true;
   Except
@@ -606,10 +614,11 @@ end;
 { TPCSafeBox }
 
 function TPCSafeBox.Account(account_number: Cardinal): TAccount;
-var b : Cardinal;
+var
+  b : Cardinal;
 begin
   b := account_number DIV CT_AccountsPerBlock;
-  if (b<0) Or (b>=FBlockAccountsList.Count) then raise Exception.Create('Invalid account: '+IntToStr(account_number));
+  if b >= FBlockAccountsList.Count then raise Exception.Create('Invalid account: '+IntToStr(account_number));
   Result := PBlockAccount(FBlockAccountsList.Items[b])^.accounts[account_number MOD CT_AccountsPerBlock];
 end;
 
@@ -668,14 +677,14 @@ begin
   end;
 end;
 
-function TPCSafeBox.AccountsCount: Integer;
+function TPCSafeBox.AccountsCount : Cardinal;
 begin
   Result := BlocksCount * CT_AccountsPerBlock;
 end;
 
 function TPCSafeBox.Block(block_number: Cardinal): TBlockAccount;
 begin
-  if (block_number<0) Or (block_number>=FBlockAccountsList.Count) then raise Exception.Create('Invalid block number: '+inttostr(block_number));
+  if block_number >= FBlockAccountsList.Count then raise Exception.Create('Invalid block number: '+inttostr(block_number));
   Result := PBlockAccount(FBlockAccountsList.Items[block_number])^;
 end;
 
@@ -686,9 +695,9 @@ begin
      TCrypto.ToHexaString(block.block_hash)]);
 end;
 
-function TPCSafeBox.BlocksCount: Integer;
+function TPCSafeBox.BlocksCount : Cardinal;
 begin
-  Result := FBlockAccountsList.Count;
+  Result := Cardinal(FBlockAccountsList.Count);
 end;
 
 class function TPCSafeBox.CalcBlockHash(const block : TBlockAccount): AnsiString;
@@ -728,7 +737,7 @@ begin
         Result := 1;
         exit;
       end;
-      if (block_number<0) Or (block_number>=FBlockAccountsList.Count) then raise Exception.Create('Invalid block number: '+inttostr(block_number));
+      if block_number >= FBlockAccountsList.Count then raise Exception.Create('Invalid block number: '+inttostr(block_number));
       if (Previous_blocks_average<=0) then raise Exception.Create('Dev error 20161016-1');
       if (Previous_blocks_average>block_number) then Previous_blocks_average := block_number;
       //
@@ -1157,8 +1166,8 @@ begin
     errors := 'Invalid integrity in accounts transaction';
     exit;
   end;
-  if (sender<0) Or (sender>=(FFreezedAccounts.BlocksCount*CT_AccountsPerBlock)) Or
-     (target<0) Or (target>=(FFreezedAccounts.BlocksCount*CT_AccountsPerBlock)) then begin
+  if (sender>=(FFreezedAccounts.BlocksCount*CT_AccountsPerBlock)) Or
+     (target>=(FFreezedAccounts.BlocksCount*CT_AccountsPerBlock)) then begin
      errors := 'Invalid sender or target on transfer';
      exit;
   end;
@@ -1207,7 +1216,7 @@ var
 begin
   Result := false;
   errors := '';
-  if (account_number<0) Or (account_number>=(FFreezedAccounts.BlocksCount*CT_AccountsPerBlock)) Then begin
+  if account_number >= (FFreezedAccounts.BlocksCount * CT_AccountsPerBlock) Then begin
      errors := 'Invalid account';
      exit;
   end;
@@ -1305,18 +1314,12 @@ begin
   Result := PAccount(FList.Items[index])^;
 end;
 
-{ TOrderedAccountKeysList }
 Type
   TOrderedAccountKeyList = Record
     rawaccountkey : TRawBytes;
     accounts_number : TOrderedCardinalList;
   end;
   POrderedAccountKeyList = ^TOrderedAccountKeyList;
-
-function SortOrdered(Item1, Item2: Pointer): Integer;
-begin
-   Result := PtrInt(Item1) - PtrInt(Item2);
-end;
 
 procedure TOrderedAccountKeysList.AddAccountKey(const AccountKey: TAccountKey);
 Var P : POrderedAccountKeyList;

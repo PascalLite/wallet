@@ -612,6 +612,7 @@ object FRMWallet: TFRMWallet
           TitleFont.Height = -11
           TitleFont.Name = 'Tahoma'
           OnClick = dgAccountsClick
+          OnDblClick = dgAccountsDblClick
         end
         object pnlAccountsInfo: TPanel
           Left = 0

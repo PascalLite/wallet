@@ -163,17 +163,17 @@ end;
 
 destructor TFileStorage.Destroy;
 begin
-  inherited;
   ClearStream;
   FreeAndNil(FStorageLock);
+  inherited;
 end;
 
 procedure TFileStorage.DoDeleteBlockChainBlocks(StartingDeleteBlock: Cardinal);
-Var stream : TStream;
+var
+  stream : TStream;
   StreamBlockHeaderStartPos : Int64; BlockHeaderFirstBlock : Cardinal;
   _Header : TBlockHeader;
-  _intBlockIndex : Cardinal;
-  p : Int64;
+
   Procedure GrowUntilPos(newPos : Int64; DeleteDataStartingAtCurrentPos : Boolean);
   Var b : Byte;
   begin
@@ -186,13 +186,14 @@ Var stream : TStream;
     end;
     Stream.Position := newPos;
   end;
+
 begin
   stream := LockBlockChainStream;
   Try
     if Not GetBlockHeaderFirstBytePosition(stream,StartingDeleteBlock,StreamBlockHeaderStartPos,BlockHeaderFirstBlock) then exit;
     If Not StreamReadBlockHeader(Stream,StreamBlockHeaderStartPos,BlockHeaderFirstBlock,StartingDeleteBlock,_Header) then exit;
-    _intBlockIndex := (_Header.BlockNumber-BlockHeaderFirstBlock);
-    p := Int64(_intBlockIndex) * Int64(CT_SizeOfBlockHeader);
+    // Just for example. If you will need current block index here
+    // _intBlockIndex := (_Header.BlockNumber-BlockHeaderFirstBlock);
     // Write null data until end of header
     GrowUntilPos(StreamBlockHeaderStartPos + GetBlockHeaderFixedSize,true);
     // End Stream at _Header
@@ -203,9 +204,8 @@ begin
 end;
 
 function TFileStorage.DoInitialize: Boolean;
-Var stream : TStream;
 begin
-  stream := LockBlockChainStream;
+  LockBlockChainStream;
   Try
     Result := true;
   Finally
@@ -233,9 +233,13 @@ var
   ops : TPCOperationsComp;
   b : Cardinal;
 begin
+  Result := false;
   Try
-    if (Assigned(DestStorage)) And (DestStorage is TFileStorage) then db := TFileStorage(DestStorage)
-    else db := Nil;
+    if (Assigned(DestStorage)) And (DestStorage is TFileStorage) then begin
+      db := TFileStorage(DestStorage)
+    end else begin
+      db := Nil;
+    end;
     try
       if Not assigned(db) then begin
         db := TFileStorage.Create(Nil);
@@ -254,6 +258,7 @@ begin
             db.SaveBlockChainBlock(ops);
           end;
           TLog.NewLog(ltdebug,Classname,'Moved blockchain from "'+Orphan+'" to "'+DestOrphan+'" from block '+inttostr(Start_Block)+' to '+inttostr(b-1));
+          Result := true;
         finally
           ops.Free;
         end;
@@ -282,6 +287,7 @@ var
     errors : AnsiString;
     blockscount, c : Cardinal;
 begin
+  Result := false;
   LockBlockChainStream;
   Try
     FileAttrs := faArchive;
@@ -311,7 +317,10 @@ begin
           ms.CopyFrom(fs,0);
           fs.Position := 0;
           ms.Position := 0;
-          if not Bank.LoadBankFromStream(ms,errors) then begin
+          if Bank.LoadBankFromStream(ms,errors) then
+          begin
+            Result := true;
+          end else begin
             TLog.NewLog(lterror,ClassName,'Error reading bank from file: '+filename+ ' Error: '+errors);
           end;
         Finally
