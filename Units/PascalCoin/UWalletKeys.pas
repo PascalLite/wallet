@@ -34,7 +34,6 @@ Type
   TWalletKeys = Class(TComponent)
   private
     FSearchableKeys : TList;
-    FFileName: AnsiString;
     FWalletPassword: AnsiString;
     FWalletFileStream : TFileStream;
     FIsValidPassword: Boolean;
@@ -62,7 +61,7 @@ Type
     Function Count : Integer;
     Property WalletFileName : AnsiString read FWalletFileName write SetWalletFileName;
     Property OnChanged : TNotifyEvent read FOnChanged write FOnChanged;
-    Procedure SetName(index : Integer; Const newName : AnsiString);
+    Procedure SetName(index : Integer; Const newName : AnsiString); overload;
     Function LockWallet : Boolean;
   End;
 

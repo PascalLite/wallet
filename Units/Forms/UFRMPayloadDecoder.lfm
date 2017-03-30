@@ -15,7 +15,7 @@ object FRMPayloadDecoder: TFRMPayloadDecoder
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poOwnerFormCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.6.2.0'
   object Label1: TLabel
     Left = 20
     Height = 13
@@ -252,7 +252,6 @@ object FRMPayloadDecoder: TFRMPayloadDecoder
         Height = 55
         Top = 28
         Width = 591
-        Color = clBtnFace
         Font.Color = clBlack
         Font.Height = -13
         Font.Name = 'Tahoma'
@@ -260,9 +259,9 @@ object FRMPayloadDecoder: TFRMPayloadDecoder
         Lines.Strings = (
           'memoDecoded'
         )
+        OnChange = memoOriginalPayloadInHexaChange
         OnKeyDown = memoDecodedKeyDown
         ParentFont = False
-        ReadOnly = True
         TabOrder = 1
         TabStop = False
       end

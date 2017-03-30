@@ -27,21 +27,28 @@ uses
 {$ENDIF}
   Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, UNode, UWalletKeys, UCrypto, Buttons, UBlockChain,
-  UAccounts, ActnList, ComCtrls, Types;
+  UAccounts, ActnList, ComCtrls, Types, UJSONFunctions, math;
 
 Const
   CM_PC_WalletKeysChanged = WM_USER + 1;
 
 type
 
+  TDestAccountComboBox = class(TComboBox)
+  public
+    procedure LoadFromString(value : AnsiString);
+    function SaveToString : AnsiString;
+  end;
+
   { TFRMOperation }
 
   TFRMOperation = class(TForm)
+    DestAccount: TDestAccountComboBox;
+    Label1: TLabel;
     lblAccountCaption: TLabel;
     bbExecute: TBitBtn;
     bbCancel: TBitBtn;
     lblAccountBalance: TLabel;
-    Label2: TLabel;
     ebSenderAccount: TEdit;
     PageControl: TPageControl;
     tsOperation: TTabSheet;
@@ -56,7 +63,6 @@ type
     lblFee: TLabel;
     rbTransaction: TRadioButton;
     rbChangeKey: TRadioButton;
-    ebDestAccount: TEdit;
     ebAmount: TEdit;
     cbNewPrivateKey: TComboBox;
     rbTransferToANewOwner: TRadioButton;
@@ -85,10 +91,13 @@ type
     procedure ebFeeChange(Sender: TObject);
     procedure ebNewPublicKeyExit(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure lblAccountBalanceClick(Sender: TObject);
+    procedure lblAccountBalanceMouseEnter(Sender: TObject);
+    procedure lblAccountBalanceMouseLeave(Sender: TObject);
     procedure rbTransactionClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure memoPayloadClick(Sender: TObject);
-    procedure ebDestAccountChange(Sender: TObject);
+    procedure DestAccountChange(Sender: TObject);
     procedure cbNewPrivateKeyChange(Sender: TObject);
     procedure ebNewPublicKeyChange(Sender: TObject);
     procedure ebEncryptPasswordChange(Sender: TObject);
@@ -98,7 +107,7 @@ type
     procedure ebSenderAccountExit(Sender: TObject);
     procedure ebSenderAccountKeyPress(Sender: TObject; var Key: Char);
     procedure bbPasswordClick(Sender: TObject);
-    procedure ebDestAccountExit(Sender: TObject);
+    procedure DestAccountExit(Sender: TObject);
   private
     FNode : TNode;
     FWalletKeys: TWalletKeys;
@@ -139,7 +148,55 @@ uses
   {$R *.lfm}
 {$ENDIF}
 
-{ TFRMOperation }
+procedure TDestAccountComboBox.LoadFromString(value : AnsiString);
+var
+  i : Cardinal;
+  jsonData : TPCJSONData;
+  destinations : TPCJSONArray;
+begin
+  Items.Clear;
+
+  jsonData := TPCJSONData.ParseJSONValue(value);
+  if not Assigned(jsonData) then begin
+    exit;
+  end;
+
+  try
+    if not (jsonData is TPCJSONArray) then begin
+      exit;
+    end;
+    destinations := TPCJSONArray.Create;
+    try
+      destinations.Assign(jsonData);
+      for i := 0 to destinations.Count - 1 do begin
+        Items.Add(destinations.GetAsVariant(i).Value);
+      end;
+    finally
+      destinations.Free;
+    end;
+  finally
+    jsonData.Free;
+  end;
+end;
+
+function TDestAccountComboBox.SaveToString : AnsiString;
+var
+  i : Cardinal;
+  total : Cardinal;
+  json : TPCJSONArray;
+begin
+  Result := '';
+  json := TPCJSONArray.Create;
+  try
+    total := math.Min(Items.Count, CT_LAST_DESTINATIONS_COUNT);
+    for i := 0 to total - 1 do begin
+      json.GetAsVariant(i).Value := Items[i];
+    end;
+    Result := json.ToJSON(false);
+  finally
+    json.Free;
+  end;
+end;
 
 procedure TFRMOperation.actExecuteExecute(Sender: TObject);
 var
@@ -300,7 +357,7 @@ begin
    UpdateWalletKeys;
 end;
 
-procedure TFRMOperation.ebDestAccountChange(Sender: TObject);
+procedure TFRMOperation.DestAccountChange(Sender: TObject);
 begin
   if FDisabled then exit;
   If not rbTransaction.Checked then begin
@@ -309,14 +366,14 @@ begin
   end;
 end;
 
-procedure TFRMOperation.ebDestAccountExit(Sender: TObject);
+procedure TFRMOperation.DestAccountExit(Sender: TObject);
 Var an : Cardinal;
   errors : AnsiString;
 begin
-  If TAccountComp.AccountTxtNumberToAccountNumber(ebDestAccount.Text,an) then begin
-    ebDestAccount.Text := TAccountComp.AccountNumberToAccountTxtNumber(an);
+  If TAccountComp.AccountTxtNumberToAccountNumber(DestAccount.Text,an) then begin
+    DestAccount.Text := TAccountComp.AccountNumberToAccountTxtNumber(an);
   end else begin
-    ebDestAccount.Text := '';
+    DestAccount.Text := '';
   end;
   UpdateOperationOptions(errors);
 end;
@@ -387,7 +444,8 @@ begin
   FSenderAccounts.OnListChanged := OnSenderAccountsChanged;
   FDisabled := true;
   FNode := TNode.Node;
-  ebDestAccount.Text := '';
+  DestAccount.Text := '';
+  DestAccount.DropDownCount := CT_LAST_DESTINATIONS_COUNT;
   ebAmount.Text := TAccountComp.FormatMoney(0);
   ebEncryptPassword.Text := '';
   ebNewPublicKey.Text := '';
@@ -403,6 +461,26 @@ begin
   FDisabled := false;
   lblAccountBalance.Caption := '';
   memoAccounts.Lines.Clear;
+end;
+
+procedure TFRMOperation.lblAccountBalanceClick(Sender: TObject);
+begin
+  If FDisabled then exit;
+  ebAmount.Text := lblAccountBalance.Caption;
+  If not rbTransaction.Checked then begin
+    rbTransaction.Checked := true;
+    rbTransactionClick(Nil);
+  end;
+end;
+
+procedure TFRMOperation.lblAccountBalanceMouseEnter(Sender: TObject);
+begin
+  lblAccountBalance.Font.Color := clBlack;
+end;
+
+procedure TFRMOperation.lblAccountBalanceMouseLeave(Sender: TObject);
+begin
+  lblAccountBalance.Font.Color := clBlue;
 end;
 
 procedure TFRMOperation.ebAmountChange(Sender: TObject);
@@ -449,13 +527,15 @@ procedure TFRMOperation.OnSenderAccountsChanged(Sender: TObject);
 Var errors : AnsiString;
 begin
   if SenderAccounts.Count>1 then begin
-    ebAmount.Text := 'ALL BALANCE';
+    ebAmount.Text := 'ALL';
     ebAmount.font.Style := [fsBold];
     ebAmount.ReadOnly := true;
+    lblAccountBalance.Enabled := false;
   end else begin
     ebAmount.Text := TAccountComp.FormatMoney(0);
     ebAmount.ReadOnly := false;
     ebAmount.Enabled := true;
+    lblAccountBalance.Enabled := true;
   end;
   UpdateAccountsInfo;
   UpdateOperationOptions(errors);
@@ -621,12 +701,12 @@ begin
       lblNewOwnerErrors.Caption := '';
       rbEncryptedWithOldEC.Checked := false;
       rbEncryptedWithEC.Caption := 'Encrypted with dest. account public key';
-      ebDestAccount.ParentFont := true;
+      DestAccount.ParentFont := true;
       ebFee.ParentFont := true;
       cbNewPrivateKey.Font.Color := clGrayText;
       ebNewPublicKey.Font.Color := clGrayText;
-      if not (TAccountComp.AccountTxtNumberToAccountNumber(ebDestAccount.Text,FTxDestAccount)) then begin
-        errors := 'Invalid dest. account ('+ebDestAccount.Text+')';
+      if not (TAccountComp.AccountTxtNumberToAccountNumber(DestAccount.Text,FTxDestAccount)) then begin
+        errors := 'Invalid dest. account ('+DestAccount.Text+')';
         lblTransactionErrors.Caption := errors;
         exit;
       end;
@@ -663,7 +743,7 @@ begin
       lblTransactionErrors.Caption := '';
       lblNewOwnerErrors.Caption := '';
       rbEncryptedWithEC.Caption := 'Encrypted with new public key';
-      ebDestAccount.Font.Color := clGrayText;
+      DestAccount.Font.Color := clGrayText;
       ebAmount.Font.Color := clGrayText;
       ebFee.Font.Color := clGrayText;
       cbNewPrivateKey.ParentFont := true;
@@ -684,7 +764,7 @@ begin
       lblTransactionErrors.Caption := '';
       lblChangeKeyErrors.Caption := '';
       lblNewOwnerErrors.Caption := '';
-      ebDestAccount.Font.Color := clGrayText;
+      DestAccount.Font.Color := clGrayText;
       ebAmount.Font.Color := clGrayText;
       ebFee.Font.Color := clGrayText;
       cbNewPrivateKey.Font.Color := clGrayText;
@@ -702,7 +782,7 @@ begin
       rbTransaction.ParentFont := true;
       rbChangeKey.ParentFont := true;
       rbTransferToANewOwner.ParentFont := true;
-      ebDestAccount.Font.Color := clGrayText;
+      DestAccount.Font.Color := clGrayText;
       ebAmount.Font.Color := clGrayText;
       ebFee.Font.Color := clGrayText;
       cbNewPrivateKey.Font.Color := clGrayText;
@@ -746,7 +826,7 @@ begin
       errors := 'Error encrypting';
       if rbTransaction.Checked then begin
         // With dest public key
-        If Not TAccountComp.AccountTxtNumberToAccountNumber(ebDestAccount.Text,dest_account_number) then begin
+        If Not TAccountComp.AccountTxtNumberToAccountNumber(DestAccount.Text, dest_account_number) then begin
           errors := 'Invalid dest account number';
           exit;
         end;

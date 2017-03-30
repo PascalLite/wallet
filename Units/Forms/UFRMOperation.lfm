@@ -1,13 +1,13 @@
 object FRMOperation: TFRMOperation
   Left = 628
-  Height = 474
+  Height = 504
   Top = 283
-  Width = 608
+  Width = 568
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'New Operation'
-  ClientHeight = 474
-  ClientWidth = 608
+  ClientHeight = 504
+  ClientWidth = 568
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -15,49 +15,28 @@ object FRMOperation: TFRMOperation
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poOwnerFormCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.6.2.0'
   object lblAccountCaption: TLabel
-    Left = 25
+    Left = 12
     Height = 13
-    Top = 20
+    Top = 16
     Width = 43
     Caption = 'Account:'
     ParentColor = False
   end
-  object lblAccountBalance: TLabel
-    Left = 440
-    Height = 19
-    Top = 15
-    Width = 149
-    Caption = 'lblAccountBalance'
-    Font.Color = clGreen
-    Font.Height = -16
-    Font.Name = 'Tahoma'
-    Font.Style = [fsBold]
-    ParentColor = False
-    ParentFont = False
-  end
-  object Label2: TLabel
-    Left = 387
-    Height = 13
-    Top = 20
-    Width = 41
-    Caption = 'Balance:'
-    ParentColor = False
-  end
   object lblAccountsCount: TLabel
-    Left = 387
+    Left = 366
     Height = 13
-    Top = 58
+    Top = 54
     Width = 18
     Caption = 'XXX'
     ParentColor = False
   end
   object bbExecute: TBitBtn
-    Left = 300
+    Left = 304
     Height = 31
-    Top = 416
-    Width = 130
+    Top = 460
+    Width = 127
     Caption = 'Execute (F12)'
     Glyph.Data = {
       DE010000424DDE01000000000000760000002800000024000000120000000100
@@ -82,10 +61,10 @@ object FRMOperation: TFRMOperation
     TabOrder = 2
   end
   object bbCancel: TBitBtn
-    Left = 465
+    Left = 443
     Height = 31
-    Top = 416
-    Width = 116
+    Top = 460
+    Width = 113
     Cancel = True
     Caption = 'Cancel'
     Kind = bkCancel
@@ -93,56 +72,56 @@ object FRMOperation: TFRMOperation
     TabOrder = 3
   end
   object PageControl: TPageControl
-    Left = 25
-    Height = 333
-    Top = 75
-    Width = 556
-    ActivePage = tsGlobalError
-    TabIndex = 1
+    Left = 12
+    Height = 381
+    Top = 71
+    Width = 544
+    ActivePage = tsOperation
+    TabIndex = 0
     TabOrder = 1
     object tsOperation: TTabSheet
       Caption = 'Operation'
-      ClientHeight = 307
-      ClientWidth = 548
+      ClientHeight = 355
+      ClientWidth = 536
       TabVisible = False
       object gbOperation: TGroupBox
         Left = 13
-        Height = 167
+        Height = 216
         Top = 8
-        Width = 521
+        Width = 509
         Caption = ' Operation: '
-        ClientHeight = 149
-        ClientWidth = 517
+        ClientHeight = 198
+        ClientWidth = 505
         TabOrder = 0
         object lblDestAccount: TLabel
-          Left = 50
+          Left = 47
           Height = 13
-          Top = 30
+          Top = 28
           Width = 95
           Caption = 'Destination account'
           ParentColor = False
         end
         object lblAmount: TLabel
-          Left = 249
+          Left = 266
           Height = 13
-          Top = 30
+          Top = 28
           Width = 37
           Caption = 'Amount'
           ParentColor = False
         end
         object lblNewPrivateKey: TLabel
-          Left = 50
+          Left = 47
           Height = 13
-          Top = 77
+          Top = 89
           Width = 78
           Caption = 'New private key'
           ParentColor = False
         end
         object lblTransactionErrors: TLabel
-          Left = 168
+          Left = 163
           Height = 13
-          Top = 7
-          Width = 331
+          Top = 48
+          Width = 324
           Alignment = taRightJustify
           AutoSize = False
           Caption = 'Errors detected'
@@ -153,10 +132,10 @@ object FRMOperation: TFRMOperation
           ParentFont = False
         end
         object lblChangeKeyErrors: TLabel
-          Left = 168
+          Left = 164
           Height = 13
-          Top = 49
-          Width = 331
+          Top = 108
+          Width = 324
           Alignment = taRightJustify
           AutoSize = False
           Caption = 'Errors detected'
@@ -167,18 +146,18 @@ object FRMOperation: TFRMOperation
           ParentFont = False
         end
         object lblNewOwnerPublicKey: TLabel
-          Left = 48
+          Left = 47
           Height = 13
-          Top = 124
+          Top = 156
           Width = 111
           Caption = 'New owner''s public key'
           ParentColor = False
         end
         object lblNewOwnerErrors: TLabel
-          Left = 197
+          Left = 193
           Height = 13
-          Top = 99
-          Width = 302
+          Top = 176
+          Width = 295
           Alignment = taRightJustify
           AutoSize = False
           Caption = 'Errors detected'
@@ -189,17 +168,17 @@ object FRMOperation: TFRMOperation
           ParentFont = False
         end
         object lblFee: TLabel
-          Left = 401
+          Left = 399
           Height = 13
-          Top = 30
+          Top = 28
           Width = 18
           Caption = 'Fee'
           ParentColor = False
         end
         object rbTransaction: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
-          Top = 5
+          Top = 8
           Width = 97
           Caption = 'Transaction (tx)'
           Checked = True
@@ -208,30 +187,20 @@ object FRMOperation: TFRMOperation
           TabStop = True
         end
         object rbChangeKey: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
-          Top = 48
+          Top = 64
           Width = 114
           Caption = 'Change private key'
           OnClick = rbTransactionClick
           TabOrder = 4
         end
-        object ebDestAccount: TEdit
-          Left = 168
-          Height = 21
-          Top = 25
-          Width = 76
-          OnChange = ebDestAccountChange
-          OnClick = rbTransactionClick
-          OnExit = ebDestAccountExit
-          TabOrder = 1
-          Text = 'ebDestAccount'
-        end
         object ebAmount: TEdit
-          Left = 296
+          Left = 321
           Height = 21
-          Top = 25
-          Width = 86
+          Top = 24
+          Width = 70
+          Alignment = taRightJustify
           OnChange = ebAmountChange
           OnClick = rbTransactionClick
           OnExit = ebFeeExit
@@ -239,10 +208,10 @@ object FRMOperation: TFRMOperation
           Text = 'Edit1'
         end
         object cbNewPrivateKey: TComboBox
-          Left = 168
+          Left = 164
           Height = 21
-          Top = 68
-          Width = 294
+          Top = 85
+          Width = 287
           ItemHeight = 13
           OnChange = cbNewPrivateKeyChange
           OnClick = rbTransactionClick
@@ -251,30 +220,31 @@ object FRMOperation: TFRMOperation
           TabOrder = 5
         end
         object rbTransferToANewOwner: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
-          Top = 98
+          Top = 128
           Width = 180
           Caption = 'Transfer account to a new owner'
           OnClick = rbTransactionClick
-          TabOrder = 7
+          TabOrder = 8
         end
         object ebNewPublicKey: TEdit
-          Left = 192
+          Left = 164
           Height = 21
-          Top = 121
-          Width = 307
+          Top = 152
+          Width = 324
           OnChange = ebNewPublicKeyChange
           OnClick = rbTransactionClick
           OnExit = ebNewPublicKeyExit
-          TabOrder = 8
+          TabOrder = 6
           Text = 'ebDestAccount'
         end
         object ebFee: TEdit
-          Left = 429
+          Left = 422
           Height = 21
-          Top = 25
-          Width = 70
+          Top = 24
+          Width = 66
+          Alignment = taRightJustify
           OnChange = ebFeeChange
           OnClick = rbTransactionClick
           OnExit = ebFeeExit
@@ -282,10 +252,10 @@ object FRMOperation: TFRMOperation
           Text = 'ebFee'
         end
         object bbKeys: TBitBtn
-          Left = 468
+          Left = 458
           Height = 22
-          Top = 67
-          Width = 31
+          Top = 84
+          Width = 30
           Glyph.Data = {
             36050000424D3605000000000000360400002800000010000000100000000100
             0800000000000001000000000000000000000001000000010000FF00FF008C6B
@@ -331,20 +301,59 @@ object FRMOperation: TFRMOperation
             5A58100000000000000000000F0F0B0F0F0F0000000000000000
           }
           OnClick = bbKeysClick
-          TabOrder = 6
+          TabOrder = 7
+        end
+        object DestAccount: TComboBox
+          Left = 164
+          Height = 21
+          Top = 24
+          Width = 94
+          AutoSelect = False
+          ItemHeight = 13
+          OnChange = DestAccountChange
+          OnClick = rbTransactionClick
+          OnExit = DestAccountExit
+          TabOrder = 1
+          Text = 'DestAccount'
+        end
+        object lblAccountBalance: TLabel
+          Cursor = crHandPoint
+          Left = 313
+          Height = 13
+          Top = 5
+          Width = 74
+          Alignment = taRightJustify
+          AutoSize = False
+          Caption = '10000.0000'
+          Font.Color = clBlue
+          Font.Height = -11
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+          OnClick = lblAccountBalanceClick
+          OnMouseEnter = lblAccountBalanceMouseEnter
+          OnMouseLeave = lblAccountBalanceMouseLeave
+        end
+        object Label1: TLabel
+          Left = 266
+          Height = 13
+          Top = 5
+          Width = 43
+          Caption = 'Available'
+          ParentColor = False
         end
       end
       object gbPayload: TGroupBox
         Left = 13
         Height = 119
-        Top = 181
-        Width = 521
+        Top = 232
+        Width = 509
         Caption = ' Payload: '
         ClientHeight = 101
-        ClientWidth = 517
+        ClientWidth = 505
         TabOrder = 1
         object lblEncryptPassword: TLabel
-          Left = 36
+          Left = 35
           Height = 13
           Top = 62
           Width = 50
@@ -352,7 +361,7 @@ object FRMOperation: TFRMOperation
           ParentColor = False
         end
         object Label4: TLabel
-          Left = 253
+          Left = 247
           Height = 13
           Top = 1
           Width = 67
@@ -360,10 +369,10 @@ object FRMOperation: TFRMOperation
           ParentColor = False
         end
         object lblEncryptionErrors: TLabel
-          Left = 253
+          Left = 247
           Height = 13
           Top = 82
-          Width = 246
+          Width = 240
           AutoSize = False
           Caption = 'Errors detected'
           Font.Color = clRed
@@ -373,90 +382,90 @@ object FRMOperation: TFRMOperation
           ParentFont = False
         end
         object lblPayloadLength: TLabel
-          Left = 344
+          Left = 336
           Height = 13
           Top = 1
-          Width = 158
+          Width = 154
           Alignment = taRightJustify
           AutoSize = False
           Caption = '000'
           ParentColor = False
         end
         object rbEncryptedWithEC: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
           Top = 21
           Width = 207
           Caption = 'Encrypted with dest account public key'
           Checked = True
           OnClick = memoPayloadClick
-          TabOrder = 1
+          TabOrder = 2
           TabStop = True
         end
         object rbEncrptedWithPassword: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
           Top = 39
           Width = 141
           Caption = 'Encrypted with password'
           OnClick = memoPayloadClick
-          TabOrder = 2
+          TabOrder = 3
         end
         object rbNotEncrypted: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
-          Top = 79
+          Top = 80
           Width = 164
           Caption = 'Don''t encrypt (Public payload)'
           OnClick = memoPayloadClick
-          TabOrder = 4
+          TabOrder = 5
         end
         object ebEncryptPassword: TEdit
-          Left = 92
+          Left = 90
           Height = 21
           Top = 59
-          Width = 122
+          Width = 119
           OnChange = ebEncryptPasswordChange
           OnClick = memoPayloadClick
-          TabOrder = 3
+          TabOrder = 4
           Text = 'ebDestAccount'
         end
         object memoPayload: TMemo
-          Left = 253
+          Left = 247
           Height = 57
           Top = 23
-          Width = 246
+          Width = 240
           Font.Color = clBlack
           Font.Height = -16
           Font.Name = 'Tahoma'
           OnChange = memoPayloadClick
           OnClick = memoPayloadClick
           ParentFont = False
-          TabOrder = 5
+          TabOrder = 0
           WantReturns = False
         end
         object rbEncryptedWithOldEC: TRadioButton
-          Left = 13
+          Left = 8
           Height = 19
           Top = 2
           Width = 159
           Caption = 'Encrypted with old public key'
           OnClick = memoPayloadClick
-          TabOrder = 0
+          TabOrder = 1
         end
       end
     end
     object tsGlobalError: TTabSheet
       Caption = 'Alert message'
-      ClientHeight = 307
-      ClientWidth = 548
+      ClientHeight = 355
+      ClientWidth = 536
       ImageIndex = 1
       TabVisible = False
       object lblGlobalErrors: TLabel
-        Left = 40
+        Left = 39
         Height = 156
         Top = 50
-        Width = 456
+        Width = 446
         Alignment = taCenter
         AutoSize = False
         Caption = '????'
@@ -471,8 +480,8 @@ object FRMOperation: TFRMOperation
       object bbPassword: TBitBtn
         Left = 191
         Height = 38
-        Top = 243
-        Width = 159
+        Top = 216
+        Width = 155
         Caption = 'Password'
         Font.Color = clWindowText
         Font.Height = -13
@@ -539,10 +548,10 @@ object FRMOperation: TFRMOperation
     end
   end
   object memoAccounts: TMemo
-    Left = 74
+    Left = 60
     Height = 59
-    Top = 12
-    Width = 307
+    Top = 8
+    Width = 300
     Font.Color = clWindowText
     Font.Height = -12
     Font.Name = 'Tahoma'
@@ -557,10 +566,10 @@ object FRMOperation: TFRMOperation
     TabOrder = 4
   end
   object ebSenderAccount: TEdit
-    Left = 74
+    Left = 60
     Height = 27
-    Top = 12
-    Width = 97
+    Top = 8
+    Width = 95
     Font.Color = clBlack
     Font.Height = -16
     Font.Name = 'Tahoma'
@@ -572,8 +581,8 @@ object FRMOperation: TFRMOperation
     Text = 'ebSenderAccount'
   end
   object ActionList1: TActionList
-    left = 140
-    top = 350
+    left = 368
+    top = 304
     object actExecute: TAction
       Caption = 'Execute (F12)'
       OnExecute = actExecuteExecute

@@ -370,7 +370,7 @@ begin
   OldSignalHandler := FpSignal(SIGINT, @SignalHandler);
   {$ENDIF}
   WriteLn('');
-  WriteLn(formatDateTime('dd/mm/yyyy hh:nn:ss.zzz',now)+' Starting PascalLite server');
+  WriteLn(formatDateTime('dd/mm/yyyy hh:nn:ss.zzz',now)+' Starting PascalLite server ' + CT_ClientAppVersion);
   _FLog.OnInThreadNewLog:=@OnPascalCoinInThreadLog;
   D:=DaemonDefs.Add as TDaemonDef;
   D.DisplayName:='Pascal Lite Daemon';

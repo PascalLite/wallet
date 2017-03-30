@@ -68,6 +68,7 @@ type
     lblReceiver: TLabel;
     lblReceiverInfo: TLabel;
     procedure FormCreate(Sender: TObject);
+    procedure memoOriginalPayloadInHexaChange(Sender: TObject);
     procedure PageControlChanging(Sender: TObject; var AllowChange: Boolean);
     procedure cbMethodPublicPayloadClick(Sender: TObject);
     procedure bbSaveMethodsClick(Sender: TObject);
@@ -83,7 +84,7 @@ type
     FAppParams : TAppParams;
     FSemaphor : Boolean;
     { Private declarations }
-    Procedure TryToDecode;
+    Procedure TryToDecode(payload : TRawBytes);
     Procedure SaveMethods;
     procedure SetOpResume(const Value: TOperationResume);
   public
@@ -109,7 +110,7 @@ procedure TFRMPayloadDecoder.bbSaveMethodsClick(Sender: TObject);
 begin
   SaveMethods;
   PageControl.ActivePage := tsDecoded;
-  TryToDecode;
+  TryToDecode(FOpResume.OriginalPayload);
 end;
 
 procedure TFRMPayloadDecoder.bbFindClick(Sender: TObject);
@@ -195,6 +196,11 @@ begin
   end;
 end;
 
+procedure TFRMPayloadDecoder.memoOriginalPayloadInHexaChange(Sender: TObject);
+begin
+  TryToDecode(TCrypto.HexaToRaw(memoOriginalPayloadInHexa.Text));
+end;
+
 procedure TFRMPayloadDecoder.Init(Const AOperationResume : TOperationResume; WalletKeys : TWalletKeys; AppParams : TAppParams);
 begin
   FWalletKeys := WalletKeys;
@@ -202,14 +208,12 @@ begin
   OpResume := AOperationResume;
   FSavedDecodeMethods := true;
   PageControl.ActivePage := tsDecoded;
-  TryToDecode;
 end;
 
 procedure TFRMPayloadDecoder.memoDecodedKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   if key=VK_ESCAPE then Close;
-
 end;
 
 procedure TFRMPayloadDecoder.PageControlChanging(Sender: TObject; var AllowChange: Boolean);
@@ -313,13 +317,13 @@ begin
     end;
     FSavedDecodeMethods := true;
     PageControl.ActivePage := tsDecoded;
-    TryToDecode;
+    TryToDecode(FOpResume.OriginalPayload);
   Finally
     FSemaphor := sem;
   End;
 end;
 
-procedure TFRMPayloadDecoder.TryToDecode;
+procedure TFRMPayloadDecoder.TryToDecode(payload : TRawBytes);
   Function UseWallet(Const raw : TRawBytes; var Decrypted : AnsiString; var WalletKey : TWalletKey) : Boolean;
   Var i : Integer;
   begin
@@ -338,7 +342,7 @@ procedure TFRMPayloadDecoder.TryToDecode;
 
   end;
 
-  Function  UsePassword(const raw : TRawBytes; var Decrypted,PasswordUsed : AnsiString) : Boolean;
+  Function UsePassword(const raw : TRawBytes; var Decrypted,PasswordUsed : AnsiString) : Boolean;
   Var i : Integer;
   Begin
     Result := false;
@@ -354,23 +358,21 @@ procedure TFRMPayloadDecoder.TryToDecode;
   End;
 
 
-Var raw : TRawBytes;
+var
   WalletKey : TWalletKey;
   Decrypted,PasswordUsed : AnsiString;
   ok : boolean;
 begin
   ok := true;
   if Assigned(FWalletKeys) And Assigned(FAppParams) then begin
-    raw := FOpResume.OriginalPayload;
-    if raw<>'' then begin
-      // First try to a human readable...
-      if (cbMethodPublicPayload.Checked) and (TCrypto.IsHumanReadable(raw)) then begin
-        memoDecoded.Lines.Text := raw;
-        lblDecodedMethod.Caption := 'Not encrypted payload';
-      end else if (cbUsingPrivateKeys.Checked) And (UseWallet(raw,Decrypted,WalletKey)) then begin
+    if payload <> '' then begin
+      if (cbUsingPrivateKeys.Checked) And (UseWallet(payload, Decrypted, WalletKey)) then begin
         memoDecoded.Lines.Text := Decrypted;
         lblDecodedMethod.Caption := 'Encrypted with EC '+TAccountComp.GetECInfoTxt(WalletKey.PrivateKey.EC_OpenSSL_NID);
-      end else if (cbUsingPasswords.Checked) And (UsePassword(raw,Decrypted,PasswordUsed)) then begin
+      end else if (cbMethodPublicPayload.Checked) and (TCrypto.IsHumanReadable(payload)) then begin
+        memoDecoded.Lines.Text := payload;
+        lblDecodedMethod.Caption := 'Not encrypted payload';
+      end else if (cbUsingPasswords.Checked) And (UsePassword(payload, Decrypted, PasswordUsed)) then begin
         memoDecoded.Lines.Text := Decrypted;
         lblDecodedMethod.Caption := 'Encrypted with pwd:"'+PasswordUsed+'"';
       end else begin

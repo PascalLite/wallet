@@ -195,7 +195,7 @@ begin
     errors := Format('Invalid amount %d (0 or max: %d)',[FData.amount,CT_MaxTransactionAmount]);
     Exit;
   end;
-  if (FData.fee<0) Or (FData.fee>CT_MaxTransactionFee) then begin
+  if FData.fee > CT_MaxTransactionFee then begin
     errors := Format('Invalid fee %d (max %d)',[FData.fee,CT_MaxTransactionFee]);
     Exit;
   end;
@@ -415,7 +415,7 @@ begin
     errors := 'account is blocked for protocol';
     Exit;
   end;
-  if (FData.fee<0) Or (FData.fee>CT_MaxTransactionFee) then begin
+  if FData.fee > CT_MaxTransactionFee then begin
     errors := 'Invalid fee: '+Inttostr(FData.fee);
     exit;
   end;

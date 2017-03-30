@@ -52,11 +52,11 @@ Type
   public
     Constructor Create;
     Procedure GenerateRandomPrivateKey(EC_OpenSSL_NID : Word);
-    Destructor Destroy;
+    Destructor Destroy; override;
     Property PrivateKey : PEC_KEY read FPrivateKey;
     Property PublicKey : TECDSA_Public read GetPublicKey;
     Property PublicKeyPoint : PEC_POINT read GetPublicKeyPoint;
-    Function SetPrivateKeyFromHexa(EC_OpenSSL_NID : Word; hexa : AnsiString) : Boolean;
+    procedure SetPrivateKeyFromHexa(EC_OpenSSL_NID : Word; hexa : AnsiString);
     Property EC_OpenSSL_NID : Word Read FEC_OpenSSL_NID;
     class function IsValidPublicKey(PubKey : TECDSA_Public) : Boolean;
     Function ExportToRaw : TRawBytes;
@@ -279,7 +279,7 @@ begin
   FPrivateKey := Value;
 end;
 
-function TECPrivateKey.SetPrivateKeyFromHexa(EC_OpenSSL_NID : Word; hexa : AnsiString) : Boolean;
+procedure TECPrivateKey.SetPrivateKeyFromHexa(EC_OpenSSL_NID : Word; hexa : AnsiString);
 var bn : PBIGNUM;
   ctx : PBN_CTX;
   pub_key : PEC_POINT;

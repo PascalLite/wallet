@@ -105,7 +105,7 @@ Const
   CT_Op_Changekey = $02;
   CT_Op_Recover = $03;
 
-  CT_ClientAppVersion : AnsiString = {$IFDEF PRODUCTION}'1.4.4'{$ELSE}{$IFDEF TESTNET}'TESTNET'{$ELSE}{$ENDIF}{$ENDIF};
+  CT_ClientAppVersion : AnsiString = {$IFDEF PRODUCTION}'1.4.5'{$ELSE}{$IFDEF TESTNET}'TESTNET'{$ELSE}{$ENDIF}{$ENDIF};
 
   CT_Discover_IPs =  'pascallite.ddns.net;pascallite2.ddns.net;pascallite3.ddns.net;pascallite4.dynamic-dns.net;pascallite5.dynamic-dns.net;pascallite.dynamic-dns.net;pascallite2.dynamic-dns.net;pascallite3.dynamic-dns.net';
 
@@ -114,6 +114,9 @@ Const
   // App Params
   CT_SETTINGS_FILENAME = 'pascallite.ini';
 
+  CT_LAST_DESTINATIONS_COUNT = 10;
+
+  CT_PARAM_LAST_DESTINATIONS = 'LAST_DESTINATIONS';
   CT_PARAM_GridAccountsStream = 'GridAccountsStream';
   CT_PARAM_GridAccountsPos = 'GridAccountsPos';
   CT_PARAM_DefaultFee = 'DefaultFee';
