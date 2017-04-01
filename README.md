@@ -69,7 +69,7 @@ RPC control port is binded to 127.0.0.1:4003 by default. It serves HTTP requsts 
 Both request and response are JSON objects.
 
 > **Request**
-> ```json
+> ```
 > {  
 >   "id": number - request identifier,
 >   "method": string - one of the methods supported by PascalLite RPC,
@@ -78,7 +78,7 @@ Both request and response are JSON objects.
 > ```
 
 > **Response on success**
-> ```json
+> ```
 > {  
 >   "id": number - respective request identifier,
 >   "result": object - fields and data are based on the requested RPC method,
@@ -87,7 +87,7 @@ Both request and response are JSON objects.
 > ```
 
 > **Response on error**
-> ```json
+> ```
 > {  
 >   "id": number - respective request identifier,
 >   "error": {
