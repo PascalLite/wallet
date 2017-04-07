@@ -1,12 +1,12 @@
 object FRMWalletConfig: TFRMWalletConfig
-  Left = 462
-  Height = 560
-  Top = 234
+  Left = 492
+  Height = 624
+  Top = 74
   Width = 400
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Options'
-  ClientHeight = 560
+  ClientHeight = 624
   ClientWidth = 400
   Color = clBtnFace
   Font.Color = clWindowText
@@ -14,11 +14,11 @@ object FRMWalletConfig: TFRMWalletConfig
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poOwnerFormCenter
-  LCLVersion = '1.6.2.0'
+  LCLVersion = '1.6.4.0'
   object Label1: TLabel
     Left = 16
     Height = 13
-    Top = 411
+    Top = 467
     Width = 120
     Caption = 'Default fee for operation'
     ParentColor = False
@@ -26,24 +26,25 @@ object FRMWalletConfig: TFRMWalletConfig
   object Label2: TLabel
     Left = 16
     Height = 13
-    Top = 117
+    Top = 116
     Width = 98
     Caption = 'Internet Server Port'
     ParentColor = False
   end
   object InternetServerPortDefault: TLabel
     Left = 206
-    Height = 13
+    Height = 15
     Top = 116
-    Width = 62
+    Width = 69
     Caption = 'Default XXXX'
     Font.Color = clGray
     ParentColor = False
+    ParentFont = False
   end
   object Label3: TLabel
     Left = 16
     Height = 13
-    Top = 67
+    Top = 68
     Width = 60
     Caption = 'Miner Name:'
     ParentColor = False
@@ -63,19 +64,20 @@ object FRMWalletConfig: TFRMWalletConfig
   object Label5: TLabel
     Left = 280
     Height = 13
-    Top = 228
+    Top = 220
     Width = 24
     Caption = 'Port:'
     ParentColor = False
   end
   object lblDefaultJSONRPCMinerServerPort: TLabel
     Left = 314
-    Height = 13
-    Top = 248
-    Width = 62
+    Height = 15
+    Top = 240
+    Width = 69
     Caption = 'Default XXXX'
     Font.Color = clGray
     ParentColor = False
+    ParentFont = False
   end
   object cbJSONRPCMinerServerActive: TCheckBox
     Left = 16
@@ -88,47 +90,47 @@ object FRMWalletConfig: TFRMWalletConfig
   object ebDefaultFee: TEdit
     Left = 152
     Height = 21
-    Top = 408
+    Top = 464
     Width = 56
     Alignment = taRightJustify
-    TabOrder = 8
+    TabOrder = 13
     Text = '0'
   end
   object cbSaveLogFiles: TCheckBox
     Left = 16
     Height = 19
-    Top = 440
+    Top = 496
     Width = 78
     Caption = 'Save log file'
     OnClick = cbSaveLogFilesClick
-    TabOrder = 9
+    TabOrder = 14
   end
   object cbShowLogs: TCheckBox
     Left = 16
     Height = 19
-    Top = 489
+    Top = 545
     Width = 68
     Caption = 'Show logs'
-    TabOrder = 11
+    TabOrder = 16
   end
   object bbOk: TBitBtn
     Left = 225
     Height = 30
-    Top = 520
+    Top = 576
     Width = 72
     Kind = bkOK
     OnClick = bbOkClick
-    TabOrder = 14
+    TabOrder = 19
   end
   object bbCancel: TBitBtn
     Left = 312
     Height = 30
-    Top = 520
+    Top = 576
     Width = 72
     Cancel = True
     Kind = bkCancel
     ModalResult = 2
-    TabOrder = 15
+    TabOrder = 20
   end
   object udInternetServerPort: TUpDown
     Left = 184
@@ -231,42 +233,42 @@ object FRMWalletConfig: TFRMWalletConfig
   object cbShowModalMessages: TCheckBox
     Left = 152
     Height = 19
-    Top = 440
+    Top = 496
     Width = 127
     Caption = 'Show modal messages'
-    TabOrder = 12
+    TabOrder = 17
   end
   object udJSONRPCMinerServerPort: TUpDown
     Left = 368
     Height = 21
-    Top = 224
+    Top = 216
     Width = 16
     Associate = ebJSONRPCMinerServerPort
     Max = 25000
     Min = 1
     Position = 4009
-    TabOrder = 6
+    TabOrder = 7
     Thousands = False
     Wrap = False
   end
   object ebJSONRPCMinerServerPort: TEdit
     Left = 312
     Height = 21
-    Top = 224
+    Top = 216
     Width = 56
     Alignment = taRightJustify
-    TabOrder = 5
+    TabOrder = 6
     Text = '4009'
   end
   object gbMinerPrivateKey: TGroupBox
     Left = 16
     Height = 121
-    Top = 272
+    Top = 328
     Width = 368
     Caption = ' Miner Server Private Key: '
     ClientHeight = 103
     ClientWidth = 364
-    TabOrder = 7
+    TabOrder = 12
     object rbGenerateANewPrivateKeyEachBlock: TRadioButton
       Left = 18
       Height = 19
@@ -304,15 +306,15 @@ object FRMWalletConfig: TFRMWalletConfig
   object cbSaveDebugLogs: TCheckBox
     Left = 39
     Height = 19
-    Top = 465
+    Top = 521
     Width = 118
     Caption = 'Save debug logs too'
-    TabOrder = 10
+    TabOrder = 15
   end
   object bbOpenDataFolder: TBitBtn
     Left = 16
     Height = 30
-    Top = 520
+    Top = 576
     Width = 131
     Caption = 'Open Data Folder'
     Glyph.Data = {
@@ -352,12 +354,12 @@ object FRMWalletConfig: TFRMWalletConfig
       FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00
     }
     OnClick = bbOpenDataFolderClick
-    TabOrder = 13
+    TabOrder = 18
   end
   object Label6: TLabel
     Left = 16
     Height = 13
-    Top = 228
+    Top = 220
     Width = 104
     Caption = 'Mining server bind IP:'
     ParentColor = False
@@ -365,9 +367,9 @@ object FRMWalletConfig: TFRMWalletConfig
   object MiningServerIp: TEdit
     Left = 128
     Height = 21
-    Top = 224
+    Top = 216
     Width = 144
-    TabOrder = 16
+    TabOrder = 5
     Text = 'MiningServerIp'
   end
   object RPCServerIp: TEdit
@@ -375,7 +377,7 @@ object FRMWalletConfig: TFRMWalletConfig
     Height = 21
     Top = 144
     Width = 144
-    TabOrder = 17
+    TabOrder = 21
     Text = 'RPCServerIp'
   end
   object Label7: TLabel
@@ -388,12 +390,13 @@ object FRMWalletConfig: TFRMWalletConfig
   end
   object RPCServerPortDefault: TLabel
     Left = 314
-    Height = 13
+    Height = 15
     Top = 168
-    Width = 62
+    Width = 69
     Caption = 'Default XXXX'
     Font.Color = clGray
     ParentColor = False
+    ParentFont = False
   end
   object udRPCServerPort: TUpDown
     Left = 368
@@ -404,7 +407,7 @@ object FRMWalletConfig: TFRMWalletConfig
     Max = 25000
     Min = 1
     Position = 4003
-    TabOrder = 18
+    TabOrder = 22
     Thousands = False
     Wrap = False
   end
@@ -414,7 +417,7 @@ object FRMWalletConfig: TFRMWalletConfig
     Top = 144
     Width = 56
     Alignment = taRightJustify
-    TabOrder = 19
+    TabOrder = 23
     Text = '4003'
   end
   object Label8: TLabel
@@ -427,20 +430,82 @@ object FRMWalletConfig: TFRMWalletConfig
   end
   object lbRpcServerBindIpDefault: TLabel
     Left = 128
-    Height = 13
+    Height = 15
     Top = 168
     Width = 86
     Caption = 'Default 127.0.0.1'
     Font.Color = clGray
     ParentColor = False
+    ParentFont = False
   end
   object lbMiningServerBindIpDefault: TLabel
     Left = 128
-    Height = 13
-    Top = 248
+    Height = 15
+    Top = 240
     Width = 74
     Caption = 'Default 0.0.0.0'
     Font.Color = clGray
     ParentColor = False
+    ParentFont = False
+  end
+  object Socks5Port: TEdit
+    Left = 312
+    Height = 21
+    Top = 288
+    Width = 56
+    Alignment = taRightJustify
+    Enabled = False
+    TabOrder = 10
+    Text = '4009'
+  end
+  object udSocks5Port: TUpDown
+    Left = 367
+    Height = 21
+    Top = 288
+    Width = 16
+    Associate = Socks5Port
+    Enabled = False
+    Max = 25000
+    Min = 1
+    Position = 4009
+    TabOrder = 11
+    Thousands = False
+    Wrap = False
+  end
+  object Socks5Ip: TEdit
+    Left = 128
+    Height = 21
+    Top = 288
+    Width = 144
+    Enabled = False
+    TabOrder = 9
+    Text = 'Socks5Ip'
+  end
+  object lbSocks5Port: TLabel
+    Left = 280
+    Height = 13
+    Top = 292
+    Width = 24
+    Caption = 'Port:'
+    Enabled = False
+    ParentColor = False
+  end
+  object lbSocks5Ip: TLabel
+    Left = 16
+    Height = 13
+    Top = 292
+    Width = 87
+    Caption = 'SOCKS5 proxy IP:'
+    Enabled = False
+    ParentColor = False
+  end
+  object UseSocks5: TCheckBox
+    Left = 16
+    Height = 19
+    Top = 264
+    Width = 111
+    Caption = 'Use SOCKS5 proxy'
+    OnChange = UseSocks5Change
+    TabOrder = 8
   end
 end

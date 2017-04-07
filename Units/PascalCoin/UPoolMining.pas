@@ -47,7 +47,7 @@ Type
 
   TProcessJSONObjectEvent = Procedure (json : TPCJSONObject; method : String) of object;
 
-  TJSONRPCTcpIpClient = Class(TBufferedNetTcpIpClient)
+  TJSONRPCTcpIpClient = Class(TNetTcpIpClient)
   private
     FLastId : Cardinal;
     FLockProcessBuffer : TCriticalSection;
@@ -247,22 +247,18 @@ begin
     islocked := FLockProcessBuffer.TryEnter;
   until (islocked) Or ((GetTickCount>(tc+MaxWaitMiliseconds)) And (MaxWaitMiliseconds<>0));
   If Not islocked then exit;
+  ms := TMemoryStream.Create;
   try
     if Assigned(SenderThread) then continue := Not SenderThread.Terminated
     else continue := true;
     while (Connected) And ((GetTickCount<=(tc+MaxWaitMiliseconds)) Or (MaxWaitMiliseconds=0)) And (continue) do begin
-      last_bytes_read := 0;
-      ms := ReadBufferLock;
-      try
-        if (ms.Size)>0 then begin
-          lasti := length(FReceivedBuffer);
-          setLength(FReceivedBuffer,length(FReceivedBuffer)+ms.Size);
-          CopyMemory(@FReceivedBuffer[lasti],ms.Memory,ms.Size);
-          last_bytes_read := ms.Size;
-          ms.Size := 0;
-        end;
-      finally
-        ReadBufferUnlock;
+      last_bytes_read := Recv(ms);
+      if last_bytes_read > 0 then begin
+        lasti := length(FReceivedBuffer);
+        setLength(FReceivedBuffer, length(FReceivedBuffer) + ms.Size);
+        CopyMemory(@FReceivedBuffer[lasti], ms.Memory, ms.Size);
+        last_bytes_read := ms.Size;
+        ms.Size := 0;
       end;
       If ProcessPartialBuffer then begin
         // Decode
@@ -298,6 +294,7 @@ begin
   finally
     FlushBufferPendingMessages(false,0);
     FLockProcessBuffer.Release;
+    ms.Free;
   end;
 end;
 
@@ -333,7 +330,7 @@ begin
       b := 0;
       stream.Write(b,1);
       stream.Position := 0;
-      WriteBufferToSend(stream);
+      Send(stream.Memory, stream.Size);
     finally
       stream.Free;
     end;
@@ -375,7 +372,7 @@ begin
       b := 0;
       stream.Write(b,1);
       stream.Position := 0;
-      WriteBufferToSend(stream);
+      Send(stream.Memory, stream.Size);
     finally
       stream.Free;
     end;
@@ -446,7 +443,7 @@ begin
       b := 0;
       stream.Write(b,1);
       stream.Position := 0;
-      WriteBufferToSend(stream);
+      Send(stream.Memory, stream.Size);
     finally
       stream.Free;
     end;
@@ -625,10 +622,10 @@ begin
 end;
 
 procedure TPoolMiningServer.OnNewIncommingConnection(Sender: TObject; Client: TNetTcpIpClient);
-var bClient : TJSONRPCTcpIpClient;
+var
+  bClient : TJSONRPCTcpIpClient;
   init_json : TPCJSONObject;
   jsonobj : TPCJSONObject;
-  doDelete : Boolean;
   rmethod : String;
 begin
   inherited;
@@ -645,10 +642,10 @@ begin
       init_json.Free;
     End;
     while (Active) And (Client.Connected) do begin
-      doDelete := bClient.LastReadTC+1000<GetTickCount;  // TODO: Protect GetTickCount overflow
       jsonobj := TPCJSONObject.Create;
       try
-        if bClient.DoProcessBuffer(nil,1000,doDelete,rmethod,jsonobj) then begin
+        // TODO: process partial requests
+        if bClient.DoProcessBuffer(nil,1000,true,rmethod,jsonobj) then begin
           DoProcessJSON(jsonobj,rmethod,bClient);
         end;
       finally

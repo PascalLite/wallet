@@ -236,6 +236,7 @@ Type
     procedure AppendAccountToSelected(account : Int64);
   protected
     FNode : TNode;
+    FNetData : TNetData;
     FIsActivated : Boolean;
     FWalletKeys : TWalletKeysExt;
     FLog : TLog;
@@ -336,7 +337,10 @@ begin
     setlength(nsarr,0);
 
     FNode.AutoDiscoverNodes(CT_Discover_IPs);
-    FNode.NetServer.Active := true;
+    with FAppParams.GetValue(CT_PARAM_SOCKS5_PROXY) do
+    begin
+      FNode.NetServer.Active := (address = '') and (port = 0);
+    end;
 
     Synchronize( FRMWallet.DoUpdateAccounts );
     Synchronize( FRMWallet.FinishedLoadingApp );
@@ -348,8 +352,6 @@ end;
 { TFRMWallet }
 
 procedure TFRMWallet.Activate;
-var
-  netData : TNetData;
 begin
   inherited;
   if FIsActivated then exit;
@@ -391,14 +393,17 @@ begin
     FNodeNotifyEvents.Node := FNode;
 
     // Init
-    netData := TNetData.NetData;
-    netData.OnReceivedHelloMessage := OnReceivedHelloMessage;
-    netData.OnStatisticsChanged := OnNetStatisticsChanged;
-    netData.OnNetConnectionsUpdated := onNetConnectionsUpdated;
-    netData.OnNodeServersUpdated := OnNetNodeServersUpdated;
-    netData.OnBlackListUpdated := OnNetBlackListUpdated;
+    with FAppParams.GetValue(CT_PARAM_SOCKS5_PROXY) do
+    begin
+      FNetData := TNetData.Create(Self, address, port);
+    end;
+    FNetData.OnReceivedHelloMessage := OnReceivedHelloMessage;
+    FNetData.OnStatisticsChanged := OnNetStatisticsChanged;
+    FNetData.OnNetConnectionsUpdated := onNetConnectionsUpdated;
+    FNetData.OnNodeServersUpdated := OnNetNodeServersUpdated;
+    FNetData.OnBlackListUpdated := OnNetBlackListUpdated;
 
-    FDataLoadingThread := TThreadActivate.Create(netData, FNode, FAppParams);
+    FDataLoadingThread := TThreadActivate.Create(FNetData, FNode, FAppParams);
 
     //
     TimerUpdateStatus.Enabled := true;
@@ -1049,16 +1054,12 @@ begin
 
   TNetData.NetData.Free;
 
-  step := 'Processing messages 1';
-  Application.ProcessMessages;
-
   step := 'Destroying Node';
   TNode.Node.Free;
 
   step := 'Destroying Wallet';
   FreeAndNil(FWalletKeys);
-  step := 'Processing messages 2';
-  Application.ProcessMessages;
+
   step := 'Destroying stringslist';
   Except
     On E:Exception do begin
@@ -1764,8 +1765,9 @@ begin
 end;
 
 procedure TFRMWallet.UpdateConfigChanged;
-Var wa : Boolean;
+var
   i : Integer;
+  socks5 : TAddressPort;
 begin
   tsLogs.TabVisible := FAppParams.GetValue(CT_PARAM_ShowLogs, false);
 
@@ -1782,10 +1784,15 @@ begin
     FLog.FileName := '';
   end;
 
+  socks5 := FAppParams.GetValue(CT_PARAM_SOCKS5_PROXY);
+  if Assigned(FNetData) then
+  begin
+    FNetData.SetSocks5(socks5.address, socks5.port);
+  end;
+
   if Assigned(FNode) then begin
-    wa := FNode.NetServer.Active;
     FNode.NetServer.Port := FAppParams.GetValue(CT_PARAM_InternetServerPort, CT_NetServer_Port);
-    FNode.NetServer.Active := wa;
+    FNode.NetServer.Active := (socks5.address = '') and (socks5.port = 0);
     FNode.Operations.BlockPayload := FAppParams.GetValue(CT_PARAM_MINER_NAME, '');
     FNode.NodeLogFilename := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'blocks.log';
   end;

@@ -35,9 +35,14 @@ type
 
   TFRMWalletConfig = class(TForm)
     cbJSONRPCMinerServerActive: TCheckBox;
+    UseSocks5: TCheckBox;
     ebDefaultFee: TEdit;
+    Socks5Port: TEdit;
+    lbSocks5Ip: TLabel;
+    lbSocks5Port: TLabel;
     lbMiningServerBindIpDefault: TLabel;
     lbRpcServerBindIpDefault: TLabel;
+    Socks5Ip: TEdit;
     RPCServerPort: TEdit;
     MiningServerIp: TEdit;
     Label8: TLabel;
@@ -70,12 +75,14 @@ type
     cbPrivateKeyToMine: TComboBox;
     cbSaveDebugLogs: TCheckBox;
     bbOpenDataFolder: TBitBtn;
+    udSocks5Port: TUpDown;
     udRPCServerPort: TUpDown;
     procedure FormCreate(Sender: TObject);
     procedure bbOkClick(Sender: TObject);
     procedure bbUpdatePasswordClick(Sender: TObject);
     procedure cbSaveLogFilesClick(Sender: TObject);
     procedure bbOpenDataFolderClick(Sender: TObject);
+    procedure UseSocks5Change(Sender: TObject);
   private
     FAppParams: TAppParams;
     FWalletKeys: TWalletKeys;
@@ -143,6 +150,13 @@ begin
   AppParams.SetValue(CT_PARAM_MINER_NAME, ebMinerName.Text);
   AppParams.SetValue(CT_PARAM_ShowModalMessages, cbShowModalMessages.Checked);
 
+  if UseSocks5.Checked then
+  begin
+    AppParams.SetValue(CT_PARAM_SOCKS5_PROXY, Socks5Ip.Text + ':' + IntToStr(udSocks5Port.Position));
+  end else begin
+    AppParams.SetValue(CT_PARAM_SOCKS5_PROXY, '');
+  end;
+
   ModalResult := MrOk;
 end;
 
@@ -153,6 +167,15 @@ begin
   {$ELSE}
   shellexecute(0, 'open', pchar(TFolderHelper.GetPascalCoinDataFolder), nil, nil, SW_SHOW)
   {$ENDIF}
+end;
+
+procedure TFRMWalletConfig.UseSocks5Change(Sender: TObject);
+begin
+  lbSocks5Ip.Enabled := UseSocks5.Checked;
+  Socks5Ip.Enabled := UseSocks5.Checked;
+  lbSocks5Port.Enabled := UseSocks5.Checked;
+  Socks5Port.Enabled := UseSocks5.Checked;
+  udSocks5Port.Enabled := UseSocks5.Checked;
 end;
 
 procedure TFRMWalletConfig.bbUpdatePasswordClick(Sender: TObject);
@@ -228,6 +251,23 @@ begin
 
     MiningServerIp.Text := FAppParams.GetValue(CT_PARAM_MINING_SERVER_BIND_IP, CT_MINING_SERVER_DEFAULT_BIND_IP);
     udJSONRPCMinerServerPort.Position := FAppParams.GetValue(CT_PARAM_MINING_SERVER_PORT, CT_MINING_SERVER_DEFAULT_PORT);
+
+    with FAppParams.GetValue(CT_PARAM_SOCKS5_PROXY) do
+    begin
+      if address <> '' then
+      begin
+        Socks5Ip.Text := address;
+      end else begin
+        Socks5Ip.Text := '127.0.0.1';
+      end;
+      if port <> 0 then
+      begin
+        udSocks5Port.Position := port;
+      end else begin
+        udSocks5Port.Position := 9050;
+      end;
+      UseSocks5.Checked := (address <> '') and (port <> 0);
+    end;
   Except
     On E:Exception do begin
       TLog.NewLog(lterror,ClassName,'Exception at SetAppParams: '+E.Message);

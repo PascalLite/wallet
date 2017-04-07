@@ -190,6 +190,8 @@ Type
 
   TNetData = Class(TComponent)
   private
+    FSocks5Address : string;
+    FSocks5Port : Word;
     FNetworkAdjustedTime : TNetworkAdjustedTime;
     FNetDataNotifyEventsThread : TNetDataNotifyEventsThread;
     FNodePrivateKey : TECPrivateKey;
@@ -226,8 +228,10 @@ Type
     Class Function NetData : TNetData;
     Class Function NetDataExists : Boolean;
     //
-    Constructor Create(AOwner : TComponent); override;
+    Constructor Create(AOwner : TComponent; socks5Address : string; socks5Port : Word);
     Destructor Destroy; override;
+
+    procedure SetSocks5(address: string; port: Word);
     Function Bank : TPCBank;
     Function NewRequestId : Cardinal;
     Procedure RegisterRequest(Sender: TNetConnection; operation : Word; request_id : Cardinal);
@@ -311,7 +315,6 @@ Type
     FIsDownloadingBlocks : Boolean;
     FRandomWaitSecondsSendHello : Cardinal;
     function GetConnected: Boolean;
-    procedure SetConnected(const Value: Boolean);
     procedure TcpClient_OnConnect(Sender: TObject);
     procedure TcpClient_OnDisconnect(Sender: TObject);
     Function DoSendAndWaitForResponse(operation: Word; RequestId: Integer; SendDataBuffer, ReceiveDataBuffer: TStream; MaxWaitTime : Cardinal; var HeaderData : TNetHeaderData) : Boolean;
@@ -336,7 +339,7 @@ Type
     destructor Destroy; override;
 
     Function ConnectTo(ServerIP: String; ServerPort:Word; stop : PBoolean = Nil) : Boolean;
-    Property Connected : Boolean read GetConnected write SetConnected;
+    Property Connected : Boolean read GetConnected;
     Function Send_Hello(NetTranferType : TNetTransferType; request_id : Integer) : Boolean;
     Function Send_NewBlockFound : Boolean;
     Function Send_GetBlocks(StartAddress, quantity : Cardinal; var request_id : Cardinal) : Boolean;
@@ -527,6 +530,16 @@ begin
   NotifyNodeServersUpdated;
 end;
 
+procedure TNetData.SetSocks5(address : string; port : Word);
+begin
+  if (address <> FSocks5Address) or (port <> FSocks5Port) then
+  begin
+    FSocks5Address := address;
+    FSocks5Port := port;
+    DisconnectClients;
+  end;
+end;
+
 function TNetData.Bank: TPCBank;
 begin
   Result := TNode.Node.Bank;
@@ -677,9 +690,12 @@ begin
   end;
 end;
 
-constructor TNetData.Create;
+constructor TNetData.Create(AOwner : TComponent; socks5Address : string; socks5Port : Word);
 begin
+  inherited Create(AOwner);
+
   TLog.NewLog(ltInfo,ClassName,'TNetData.Create');
+
   FNetConnectionsActive := true;
   SetLength(FFixedServers,0);
   FMaxRemoteOperationBlock := CT_OperationBlock_NUL;
@@ -693,6 +709,7 @@ begin
   FRegisteredRequests := TThreadList.Create;
   FLastRequestId := 0;
   FNetConnections := TPCThreadList.Create;
+  SetSocks5(socks5Address, socks5Port);
   FNetworkAdjustedTime := TNetworkAdjustedTime.Create;
   FBlackList := TPCThreadList.Create;
   FIsGettingNewBlockChainFromClient := false;
@@ -759,7 +776,7 @@ begin
   l := FNetConnections.LockList;
   Try
     for i := 0 to l.Count - 1 do begin
-      TNetConnection(l[i]).Connected := false;
+      TNetConnection(l[i]).FTcpIpClient.Disconnect;
       TNetConnection(l[i]).FinalizeConnection;
     end;
   Finally
@@ -810,7 +827,7 @@ begin
   Try
     for i := l.Count - 1 downto 0 do begin
       if TObject(l[i]) is TNetClient then begin
-        TNetClient(l[i]).Connected := false;
+        TNetClient(l[i]).FTcpIpClient.Disconnect;
         TNetClient(l[i]).FinalizeConnection;
       end;
     end;
@@ -1366,9 +1383,6 @@ end;
 
 class function TNetData.NetData: TNetData;
 begin
-  if Not Assigned(_NetData) then begin
-    _NetData := TNetData.Create(nil);
-  end;
   result := _NetData;
 end;
 
@@ -1542,7 +1556,7 @@ constructor TNetServer.Create;
 begin
   inherited;
   MaxConnections := CT_MaxClientsConnected;
-  NetTcpIpClientClass := TBufferedNetTcpIpClient;
+  NetTcpIpClientClass := TNetTcpIpClient;
   Port := CT_NetServer_Port;
 end;
 
@@ -1579,7 +1593,7 @@ begin
     Finally
       Try
         TLog.NewLog(ltdebug,Classname,'Finalizing ServerAccept '+IntToHex(PtrInt(n),8)+' '+n.ClientRemoteAddr);
-        n.Connected := false;
+        n.FTcpIpClient.Disconnect;
       Finally
         n.Free;
       End;
@@ -1631,17 +1645,11 @@ begin
 
   TPCThread.ProtectEnterCriticalSection(Self,FNetLock);
   Try
-    Client.RemoteHost := ServerIP;
     if ServerPort<=0 then ServerPort := CT_NetServer_Port;
-    Client.RemotePort := ServerPort;
     TLog.NewLog(ltDebug,Classname,'Trying to connect to a server at: '+ClientRemoteAddr);
     TNetData.NetData.NotifyNetConnectionUpdated;
 
-    if not Assigned(stop) then begin
-      Result := Client.Connect;
-    end else begin
-      Result := Client.ConnectNonBlocking(15, stop);
-    end;
+    Result := Client.Connect(ServerIP, ServerPort, 15, stop);
   Finally
     FNetLock.Release;
   End;
@@ -1658,7 +1666,7 @@ begin
   inherited;
 
   FFreeClientOnDestroy := true;
-  FTcpIpClient := TBufferedNetTcpIpClient.Create(Self);
+  FTcpIpClient := TNetTcpIpClient.Create(Self);
   FTcpIpClient.FreeNotification(Self);
   FTcpIpClient.OnConnect := TcpClient_OnConnect;
   FTcpIpClient.OnDisconnect := TcpClient_OnDisconnect;
@@ -1688,7 +1696,7 @@ Var Pnsa : PNodeServerAddress;
 begin
   TLog.NewLog(ltdebug,ClassName,'Destroying '+Classname+' '+IntToHex(PtrInt(Self),8));
 
-  Connected := false;
+  FTcpIpClient.Disconnect;
 
   lns := TNetData.NetData.FNodeServers.LockList;
   try
@@ -1802,7 +1810,7 @@ begin
       TNetData.NetData.FNodeServers.UnlockList;
     end;
   end;
-  Connected := False;
+  FTcpIpClient.Disconnect;
   TNetData.NetData.NotifyBlackListUpdated;
   TNetData.NetData.NotifyNodeServersUpdated;
 end;
@@ -1818,7 +1826,7 @@ begin
     if FDoFinalizeConnection then begin
       DebugStep := 'Executing DoFinalizeConnection';
       TLog.NewLog(ltdebug,Classname,'Executing DoFinalizeConnection at client '+ClientRemoteAddr);
-      Connected := false;
+      FTcpIpClient.Disconnect;
     end;
     if Not Connected then exit;
     ms := TMemoryStream.Create;
@@ -1844,7 +1852,7 @@ begin
       If TNetData.NetData.PendingRequest(Self,ops)>=2 then begin
         TLog.NewLog(ltDebug,Classname,'Pending requests without response... closing connection to '+ClientRemoteAddr+' > '+ops);
         DebugStep := 'Setting connected to false';
-        Connected := false;
+        FTcpIpClient.Disconnect;
       end else begin
         TLog.NewLog(ltDebug,Classname,'Sending Hello to check connection to '+ClientRemoteAddr+' > '+ops);
         DebugStep := 'Sending Hello';
@@ -1853,7 +1861,7 @@ begin
     end else if (Self is TNetServerClient) AND (FLastDataReceivedTS=0) And (FCreatedTime+EncodeTime(0,1,0,0)<Now) then begin
       // Disconnecting client without data...
       TLog.NewLog(ltDebug,Classname,'Disconnecting client without data '+ClientRemoteAddr);
-      Connected := false;
+      FTcpIpClient.Disconnect;
     end;
   Except
     On E:Exception do begin
@@ -2582,26 +2590,18 @@ begin
           end;
         end;
       end else begin
-        if Not (Client as TBufferedNetTcpIpClient).WaitDataAvailable(MaxWaitMiliseconds) then begin
+        if Not Client.WaitForData(MaxWaitMiliseconds) then begin
           exit;
         end;
 
-        auxstream := (Client as TBufferedNetTcpIpClient).ReadBufferLock;
-        try
-          last_bytes_read := auxstream.size;
-          if last_bytes_read>0 then begin
-            FLastDataReceivedTS := GetTickCount;
-            FRandomWaitSecondsSendHello := 90 + Random(60);
+        FClientBufferRead.Position := FClientBufferRead.Size;
+        last_bytes_read := Client.Recv(FClientBufferRead);
+        if last_bytes_read > 0 then begin
+          FLastDataReceivedTS := GetTickCount;
+          FRandomWaitSecondsSendHello := 90 + Random(60);
 
-            FClientBufferRead.Position := FClientBufferRead.size; // Go to the end
-            auxstream.Position := 0;
-            FClientBufferRead.CopyFrom(auxstream,last_bytes_read);
-            FClientBufferRead.Position := 0;
-            auxstream.Size := 0;
-            inc(t_bytes_read,last_bytes_read);
-          end;
-        finally
-          (Client as TBufferedNetTcpIpClient).ReadBufferUnlock;
+          FClientBufferRead.Position := 0;
+          inc(t_bytes_read,last_bytes_read);
         end;
       end;
     until (Result) Or ((GetTickCount > (tc+MaxWaitMiliseconds)) And (last_bytes_read=0));
@@ -2638,7 +2638,7 @@ end;
 procedure TNetConnection.Send(NetTranferType: TNetTransferType; operation, errorcode: Word; request_id: Integer; DataBuffer: TStream);
 Var l : Cardinal;
    w : Word;
-  Buffer : TStream;
+  Buffer : TMemoryStream;
   s : AnsiString;
 begin
   Buffer := TMemoryStream.Create;
@@ -2695,7 +2695,7 @@ begin
         TNetData.OperationToText(operation)+' id:'+Inttostr(request_id)+' errorcode:'+InttoStr(errorcode)+
         ' Size:'+InttoStr(Buffer.Size)+'b '+s+'to '+
         ClientRemoteAddr);
-      (Client as TBufferedNetTcpIpClient).WriteBufferToSend(Buffer);
+      Client.Send(Buffer.Memory, Buffer.Size);
       FLastDataSendedTS := GetTickCount;
       FRandomWaitSecondsSendHello := 90 + Random(60);
     Finally
@@ -2897,13 +2897,6 @@ begin
   end;
 end;
 
-procedure TNetConnection.SetConnected(const Value: Boolean);
-begin
-  if (Value = GetConnected) then exit;
-  if Value then ConnectTo(Client.RemoteHost,Client.RemotePort)
-  else Client.Disconnect;
-end;
-
 procedure TNetConnection.TcpClient_OnConnect(Sender: TObject);
 begin
   TNetData.NetData.IncStatistics(1,0,1,0,0,0);
@@ -2968,7 +2961,7 @@ procedure TNetClient.OnNetClientThreadTerminated(Sender: TObject);
 begin
   // Close connection
   if TNetData.NetData.ConnectionExistsAndActive(Self) then begin
-    Connected := false;
+    FTcpIpClient.Disconnect;
   end;
 end;
 
@@ -3000,6 +2993,10 @@ begin
     TNetData.NetData.NotifyNodeServersUpdated;
     // Try to connect
     NC := TNetClient.Create(Nil);
+    if (FNetData.FSocks5Address <> '') and (FNetData.FSocks5Port <> 0) then
+    begin
+      NC.FTcpIpClient.SetSocks5(FNetData.FSocks5Address, FNetData.FSocks5Port);
+    end;
     Try
       If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port, @Terminated) then begin
         ok := NC.Connected;
@@ -3131,6 +3128,7 @@ var
   nc : TNetConnection;
   lastRequestId : Cardinal;
   downloading : Boolean;
+  connection : TNetConnection;
 begin
 
   while true do
@@ -3167,39 +3165,36 @@ begin
             candidates.Add(nc);
           end;
         end;
-        if downloading then
+        if downloading or (candidates.Count = 0) then
         begin
           continue;
         end;
+
+        TLog.NewLog(ltdebug, Classname, Format('Candidates: %d', [candidates.Count]));
+
+        connection := TNetConnection(candidates[Random(candidates.Count)]);
       finally
         FNetData.ConnectionsUnlock;
       end;
 
-      if candidates.Count > 0 then
+      FNetData.FMaxRemoteOperationBlock := connection.FRemoteOperationBlock;
+
+      TLog.NewLog(ltdebug, Classname, Format('Receiving new blockchain from %s. Remote blocks: %d, Node blocks: %d', [connection.ClientRemoteAddr, connection.FRemoteOperationBlock.block, TNode.Node.Bank.BlocksCount]));
+
+      lastRequestId := 0;
+      FNetData.GetNewBlockChainFromClient(connection, @lastRequestId);
+      // TODO: event
+      if lastRequestId > 0 then
       begin
-        // Random a candidate
-        i := Random(candidates.Count); // i = 0..count-1
-
-        FNetData.FMaxRemoteOperationBlock := TNetConnection(candidates[i]).FRemoteOperationBlock;
-
-        TLog.NewLog(ltdebug, Classname, Format('Candidates: %d', [candidates.Count]));
-        TLog.NewLog(ltdebug, Classname, Format('Receiving new blockchain from %s. Remote blocks: %d, Node blocks: %d', [TNetConnection(candidates[i]).ClientRemoteAddr, TNetConnection(candidates[i]).FRemoteOperationBlock.block, TNode.Node.Bank.BlocksCount]));
-
-        // TODO: event
-        lastRequestId := 0;
-        FNetData.GetNewBlockChainFromClient(TNetConnection(candidates[i]), @lastRequestId);
-        if lastRequestId > 0 then
+        while FNetData.RequestAlive(lastRequestId) do
         begin
-          while FNetData.RequestAlive(lastRequestId) do
-          begin
-            Sleep(100);
-          end;
+          Sleep(100);
         end;
-
-        FNetData.FMaxRemoteOperationBlock := CT_OperationBlock_NUL;
-
-        InterLockedIncrement(FNetData.FBlockChainUpdateRequests);
       end;
+
+      FNetData.FMaxRemoteOperationBlock := CT_OperationBlock_NUL;
+
+      InterLockedIncrement(FNetData.FBlockChainUpdateRequests);
     finally
       candidates.Free;
     end;

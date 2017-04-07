@@ -24,6 +24,11 @@ uses
 
 type
 
+  TAddressPort = record
+    address : string;
+    port : Word;
+  end;
+
   TAppParams = Class(TComponent)
   private
     FIniFile : TIniFile;
@@ -40,11 +45,13 @@ type
     Procedure SetValue(parameter : AnsiString; value : AnsiString); overload;
     Procedure SetValue(parameter : AnsiString; value : Int64); overload;
     Procedure SetValue(parameter : AnsiString; value : Boolean); overload;
+    procedure SetValue(parameter : AnsiString; value : TAddressPort); overload;
     function IsNil(parameter : AnsiString) : Boolean;
     function GetValue(parameter : AnsiString; const default : AnsiString): AnsiString; overload;
     function GetValue(parameter : AnsiString; const default :  Boolean): Boolean; overload;
     function GetValue(parameter : AnsiString; const default :  Integer): Integer; overload;
     function GetValue(parameter : AnsiString; const default :  Int64): Int64; overload;
+    function GetValue(parameter : AnsiString): TAddressPort; overload;
 
     property FileName : AnsiString read FFileName;
   End;
@@ -135,6 +142,30 @@ end;
 function TAppParams.GetValue(parameter : AnsiString; const default :  Int64): Int64;
 begin
   Result := FIniFile.ReadInt64(SectionName, parameter, default);
+end;
+
+procedure TAppParams.SetValue(parameter : AnsiString; value : TAddressPort);
+begin
+  SetValue(parameter, value.address + ':' + IntToStr(value.port));
+end;
+
+function TAppParams.GetValue(parameter : AnsiString): TAddressPort; overload;
+var
+  pos : Integer;
+  address : string;
+  port : Word;
+  value : AnsiString;
+begin
+  value := GetValue(parameter, '');
+  pos := value.IndexOf(':');
+  if pos < 1 then
+  begin
+    Result.address := '';
+    Result.port := 0;
+  end else begin
+    Result.address := value.Substring(0, pos);
+    Result.port := Word(StrToDWord(value.Substring(pos + 1)));
+  end;
 end;
 
 end.
