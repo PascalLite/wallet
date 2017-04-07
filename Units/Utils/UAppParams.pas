@@ -151,20 +151,18 @@ end;
 
 function TAppParams.GetValue(parameter : AnsiString): TAddressPort; overload;
 var
-  pos : Integer;
-  address : string;
-  port : Word;
   value : AnsiString;
+  position : Integer;
 begin
   value := GetValue(parameter, '');
-  pos := value.IndexOf(':');
-  if pos < 1 then
+  position := Pos(':', value);
+  if position < 2 then
   begin
     Result.address := '';
     Result.port := 0;
   end else begin
-    Result.address := value.Substring(0, pos);
-    Result.port := Word(StrToDWord(value.Substring(pos + 1)));
+    Result.address := Copy(value, 1, position - 1);
+    Result.port := Word(StrToInt(Copy(value, position + 1)));
   end;
 end;
 
