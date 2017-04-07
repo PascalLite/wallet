@@ -78,6 +78,7 @@ Var _FLog : TLog;
 procedure TPCDaemonThread.BCExecute;
 var
   FNode : TNode;
+  FNetData : TNetData;
   FWalletKeys : TWalletKeysExt;
   FRPC : TRPCServer;
   FMinerServer : TPoolMiningServer;
@@ -215,7 +216,11 @@ begin
         TCrypto.InitCrypto;
         FWalletKeys.WalletFileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'WalletKeys.dat';
         // Creating Node:
-        FNode := TNode.Node;
+        FNode := TNode.Create(nil);
+        with FAppParams.GetValue(CT_PARAM_SOCKS5_PROXY) do
+        begin
+          FNetData := TNetData.Create(nil, address, port);
+        end;
         // RPC Server
         InitRPCServer;
         Try
@@ -241,7 +246,7 @@ begin
           FreeAndNil(FRPC);
         end;
         FNode.NetServer.Active := false;
-        TNetData.NetData.Free;
+        FreeAndNil(FNetData);
         FreeAndNil(FNode);
       except
         on e:Exception do begin
