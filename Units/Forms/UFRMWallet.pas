@@ -1389,8 +1389,8 @@ begin
       StatusBar.Panels[0].Text := 'Active (Port '+Inttostr(FNode.NetServer.Port)+')';
     end else StatusBar.Panels[0].Text := 'Server stopped';
     NS := TNetData.NetData.NetStatistics;
-    StatusBar.Panels[1].Text := Format('Connections:%d Clients:%d Servers:%d - Rcvd:%d Kb Send:%d Kb',
-      [NS.ActiveConnections,NS.ClientsConnections,NS.ServersConnections,NS.BytesReceived DIV 1024,NS.BytesSend DIV 1024]);
+    StatusBar.Panels[1].Text := Format('Connections: %d Clients: %d Servers: %d - Rcvd: %d Kb Sent: %d Kb',
+      [NS.ClientsConnections + NS.ServersConnectionsWithResponse, NS.ClientsConnections, NS.ServersConnectionsWithResponse,NS.BytesReceived DIV 1024,NS.BytesSend DIV 1024]);
   end else begin
     StatusBar.Panels[0].Text := '';
     StatusBar.Panels[1].Text := '';

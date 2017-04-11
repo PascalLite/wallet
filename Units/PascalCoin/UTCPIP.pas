@@ -191,16 +191,12 @@ end;
 
 function TNetTcpIpClient.ClientRemoteAddr: AnsiString;
 begin
-  If Assigned(FTcpBlockSocket) then begin
-    {$IFDEF DelphiSockets}
-    Result := FTcpBlockSocket.RemoteHost+':'+FTcpBlockSocket.RemotePort;
-    {$ENDIF}
-    {$IFDEF Synapse}
-    if FConnected then
-      Result := FTcpBlockSocket.GetRemoteSinIP+':'+IntToStr(FTcpBlockSocket.GetRemoteSinPort)
-    else Result := GetRemoteHost+':'+inttostr(GetRemotePort);
-    {$ENDIF}
-  end else Result := 'NIL';
+  {$IFDEF DelphiSockets}
+  Result := FTcpBlockSocket.RemoteHost+':'+FTcpBlockSocket.RemotePort;
+  {$ENDIF}
+  {$IFDEF Synapse}
+  Result := GetRemoteHost + ':' + IntToStr(GetRemotePort)
+  {$ENDIF}
 end;
 
 function TNetTcpIpClient.Connect(address : string; port : Word; timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
@@ -263,7 +259,6 @@ end;
 constructor TNetTcpIpClient.Create(AOwner : TComponent);
 begin
   inherited;
-  FTcpBlockSocket := Nil;
   {$IFDEF DelphiSockets}
   FTcpBlockSocket := TTcpClient.Create(Nil);
   FTcpBlockSocket.OnConnect := OnConnect;
@@ -323,8 +318,7 @@ begin
   Result := FTcpBlockSocket.RemoteHost;
   {$ENDIF}
   {$IFDEF Synapse}
-  if FConnected then Result := FTcpBlockSocket.GetRemoteSinIP
-  else Result := '';
+  Result := FTcpBlockSocket.GetRemoteSinIP;
   {$ENDIF}
 end;
 
@@ -334,8 +328,7 @@ begin
   Result := StrToIntDef(FTcpBlockSocket.RemotePort,0);
   {$ENDIF}
   {$IFDEF Synapse}
-  if FConnected then Result := FTcpBlockSocket.GetRemoteSinPort
-  else Result := 0;
+  Result := FTcpBlockSocket.GetRemoteSinPort;
   {$ENDIF}
 end;
 
