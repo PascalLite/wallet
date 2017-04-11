@@ -108,8 +108,9 @@ Type
     NetClient : TNetConnection;
     Operation : Word;
     RequestId : Cardinal;
-    SendTime : TDateTime;
+    SendTime : QWord;
   end;
+  PNetRequestRegistered = ^TNetRequestRegistered;
 
   TNetStatistics = Record
     ActiveConnections : Integer; // All connections wiht "connected" state
@@ -236,7 +237,7 @@ Type
     Function NewRequestId : Cardinal;
     Procedure RegisterRequest(Sender: TNetConnection; operation : Word; request_id : Cardinal);
     Function UnRegisterRequest(Sender: TNetConnection; operation : Word; request_id : Cardinal) : Boolean;
-    Function PendingRequest(Sender : TNetConnection; var requests_data : AnsiString ) : Integer;
+    function PendingRequestAnyTime(Sender: TNetConnection) : QWord;
     function RequestAlive(requestId : Cardinal) : Boolean;
     Procedure AddServer(NodeServerAddress : TNodeServerAddress);
     Function IsBlackListed(const ip : AnsiString; port : Word) : Boolean;
@@ -298,8 +299,8 @@ Type
     FFreeClientOnDestroy : Boolean;
     FTcpIpClient : TNetTcpIpClient;
     FRemoteOperationBlock : TOperationBlock;
-    FLastDataReceivedTS : Cardinal;
-    FLastDataSendedTS : Cardinal;
+    FLastDataReceivedTS : QWord;
+    FLastDataSendedTS : QWord;
     FClientBufferRead : TStream;
     FNetLock : TCriticalSection;
     FIsWaitingForResponse : Boolean;
@@ -313,7 +314,6 @@ Type
     FAlertedForNewProtocolAvailable : Boolean;
     FHasReceivedData : Boolean;
     FIsDownloadingBlocks : Boolean;
-    FRandomWaitSecondsSendHello : Cardinal;
     function GetConnected: Boolean;
     procedure TcpClient_OnConnect(Sender: TObject);
     procedure TcpClient_OnDisconnect(Sender: TObject);
@@ -327,7 +327,7 @@ Type
     Procedure DoProcess_NewBlock(HeaderData : TNetHeaderData; DataBuffer: TStream);
     Procedure DoProcess_AddOperations(HeaderData : TNetHeaderData; DataBuffer: TStream);
     Function ReadTcpClientBuffer(MaxWaitMiliseconds : Cardinal; var HeaderData : TNetHeaderData; BufferData : TStream) : Boolean;
-    Procedure DisconnectInvalidClient(ItsMyself : Boolean; Const why : AnsiString);
+    Procedure DisconnectInvalidClient(ItsMyself : Boolean; Const why : AnsiString; blacklist : Boolean = true);
     procedure Initialize;
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -417,8 +417,6 @@ Const
 { TNetData }
 
 Var _NetData : TNetData = nil;
-
-Type PNetRequestRegistered = ^TNetRequestRegistered;
 
 function SortNodeServerAddress(Item1, Item2: Pointer): Integer;
 Var P1,P2 : PNodeServerAddress;
@@ -1454,23 +1452,23 @@ begin
   end;
 end;
 
-function TNetData.PendingRequest(Sender: TNetConnection; var requests_data : AnsiString): Integer;
+function TNetData.PendingRequestAnyTime(Sender: TNetConnection) : QWord;
 var
-  i : Integer;
+  i : Cardinal;
   l : TList;
 begin
-  requests_data := '';
+  Result := 0;
   l := FRegisteredRequests.LockList;
   Try
-    if Assigned(Sender) then begin
-      Result := 0;
-      for i := l.Count - 1 downto 0 do begin
-        if (PNetRequestRegistered(l[i])^.NetClient=Sender) then begin
-          requests_data := requests_data+'Op:'+OperationToText(PNetRequestRegistered(l[i])^.Operation)+' Id:'+Inttostr(PNetRequestRegistered(l[i])^.RequestId)+' - ';
-          inc(Result);
-        end;
+    if l.Count = 0 then begin
+      exit;
+    end;
+    for i := 0 to l.Count - 1 do begin
+      if (PNetRequestRegistered(l[i])^.NetClient = Sender) then begin
+        Result := PNetRequestRegistered(l[i]).SendTime;
+        exit;
       end;
-    end else Result := l.Count;
+    end;
   Finally
     FRegisteredRequests.UnlockList;
   End;
@@ -1506,7 +1504,7 @@ begin
     P^.NetClient := Sender;
     P^.Operation := operation;
     P^.RequestId := request_id;
-    P^.SendTime := Now;
+    P^.SendTime := GetTickCount64;
     l.Add(P);
     TLog.NewLog(ltdebug,Classname,'Registering request to '+Sender.ClientRemoteAddr+' Op:'+OperationToText(operation)+' Id:'+inttostr(request_id)+' Total pending:'+Inttostr(l.Count));
   Finally
@@ -1757,14 +1755,13 @@ begin
   FNetLock := TCriticalSection.Create;
   FLastDataReceivedTS := 0;
   FLastDataSendedTS := 0;
-  FRandomWaitSecondsSendHello := 90 + Random(60);
   FRemoteOperationBlock := CT_OperationBlock_NUL;
 
   TNetData.NetData.FNetConnections.Add(Self);
   TNetData.NetData.NotifyNetConnectionUpdated;
 end;
 
-procedure TNetConnection.DisconnectInvalidClient(ItsMyself : Boolean; const why: AnsiString);
+procedure TNetConnection.DisconnectInvalidClient(ItsMyself : Boolean; const why: AnsiString; blacklist : Boolean = true);
 Var P : PNodeServerAddress;
   l : TList;
   i : Integer;
@@ -1777,7 +1774,7 @@ begin
     TLog.NewLog(lterror,Classname,'Disconecting '+ClientRemoteAddr+' > '+Why);
   end;
   FIsMyselfServer := ItsMyself;
-  include_in_list := (Not SameText(Client.RemoteHost,'localhost')) And (Not SameText(Client.RemoteHost,'127.0.0.1'))
+  include_in_list := blacklist and (Not SameText(Client.RemoteHost,'localhost')) And (Not SameText(Client.RemoteHost,'127.0.0.1'))
     And (Not SameText('192.168.',Copy(Client.RemoteHost,1,8)))
     And (Not SameText('10.',Copy(Client.RemoteHost,1,3)));
   if include_in_list then begin
@@ -1820,6 +1817,8 @@ Var HeaderData : TNetHeaderData;
   ms : TMemoryStream;
   ops : AnsiString;
   DebugStep : String;
+  current : QWord;
+  request : QWord;
 begin
   DebugStep := '';
   try
@@ -1845,23 +1844,16 @@ begin
     finally
       ms.Free;
     end;
-    If ((FLastDataReceivedTS>0) Or ( NOT (Self is TNetServerClient)))
-       AND ((FLastDataReceivedTS+(1000*FRandomWaitSecondsSendHello)<GetTickCount) AND (FLastDataSendedTS+(1000*FRandomWaitSecondsSendHello)<GetTickCount)) then begin
-       // Build 1.4 -> Changing wait time from 120 secs to a random seconds value
-      DebugStep := 'LastSend time old';
-      If TNetData.NetData.PendingRequest(Self,ops)>=2 then begin
-        TLog.NewLog(ltDebug,Classname,'Pending requests without response... closing connection to '+ClientRemoteAddr+' > '+ops);
-        DebugStep := 'Setting connected to false';
-        FTcpIpClient.Disconnect;
-      end else begin
-        TLog.NewLog(ltDebug,Classname,'Sending Hello to check connection to '+ClientRemoteAddr+' > '+ops);
-        DebugStep := 'Sending Hello';
-        Send_Hello(ntp_request,TNetData.NetData.NewRequestId);
-      end;
-    end else if (Self is TNetServerClient) AND (FLastDataReceivedTS=0) And (FCreatedTime+EncodeTime(0,1,0,0)<Now) then begin
-      // Disconnecting client without data...
-      TLog.NewLog(ltDebug,Classname,'Disconnecting client without data '+ClientRemoteAddr);
+    current := GetTickCount64;
+    request := TNetData.NetData.PendingRequestAnyTime(Self);
+    if (request > 0) and ((request + 30 * 1000) < current) then begin
+      TLog.NewLog(ltDebug,Classname,'Pending requests without response... closing connection to '+ClientRemoteAddr+' > '+ops);
+      DebugStep := 'Setting connected to false';
       FTcpIpClient.Disconnect;
+    end else if (current > (FLastDataSendedTS + 120 * 1000)) then begin
+      TLog.NewLog(ltDebug,Classname,'Sending Hello to check connection to '+ClientRemoteAddr+' > '+ops);
+      DebugStep := 'Sending Hello';
+      Send_Hello(ntp_request,TNetData.NetData.NewRequestId);
     end;
   Except
     On E:Exception do begin
@@ -2212,15 +2204,15 @@ Begin
     end;
     FLastKnownTimestampDiff := Int64(connection_ts) - Int64(UnivDateTimeToUnix( DateTime2UnivDateTime(now)));
 
-    TNetData.NetData.NetworkAdjustedTime.Input(self.Client.RemoteHost, FLastKnownTimestampDiff);
-    if (-1) * TNetData.NetData.NetworkAdjustedTime.TimeOffset > CT_MaxSecondsFutureBlockTime then begin
-      TNode.Node.NotifyNetClientMessage(Nil, Format('System time is %d seconds ahead the network time. In order to be able to mine, ensure that your system clock is set correctly.', [(-1) * TNetData.NetData.NetworkAdjustedTime.TimeOffset]));
+    if IsValidTime(connection_ts) then begin
+      TNetData.NetData.NetworkAdjustedTime.Input(self.Client.RemoteHost, FLastKnownTimestampDiff);
+      if (-1) * TNetData.NetData.NetworkAdjustedTime.TimeOffset > CT_MaxSecondsFutureBlockTime then begin
+        TNode.Node.NotifyNetClientMessage(Nil, Format('System time is %d seconds ahead the network time. In order to be able to mine, ensure that your system clock is set correctly.', [(-1) * TNetData.NetData.NetworkAdjustedTime.TimeOffset]));
+      end;
+    end else begin
+      DisconnectInvalidClient(false,'Invalid remote timestamp. Difference:'+inttostr(FLastKnownTimestampDiff)+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes), false);
     end;
 
-    // Check valid time
-    if Not IsValidTime(connection_ts) then begin
-      DisconnectInvalidClient(false,'Invalid remote timestamp. Difference:'+inttostr(FLastKnownTimestampDiff)+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes));
-    end;
     if (connection_has_a_server>0) And (Not SameText(Client.RemoteHost,'localhost')) And (Not SameText(Client.RemoteHost,'127.0.0.1'))
       And (Not SameText('192.168.',Copy(Client.RemoteHost,1,8)))
       And (Not SameText('10.',Copy(Client.RemoteHost,1,3)))
@@ -2542,7 +2534,7 @@ end;
 function TNetConnection.ReadTcpClientBuffer(MaxWaitMiliseconds: Cardinal; var HeaderData: TNetHeaderData; BufferData: TStream): Boolean;
 var
   auxstream : TMemoryStream;
-  tc : Cardinal;
+  tc : QWord;
   last_bytes_read, t_bytes_read : Int64;
   IsValidHeaderButNeedMoreData : Boolean;
   deletedBytes : Int64;
@@ -2597,21 +2589,20 @@ begin
         FClientBufferRead.Position := FClientBufferRead.Size;
         last_bytes_read := Client.Recv(FClientBufferRead);
         if last_bytes_read > 0 then begin
-          FLastDataReceivedTS := GetTickCount;
-          FRandomWaitSecondsSendHello := 90 + Random(60);
+          FLastDataReceivedTS := GetTickCount64;
 
           FClientBufferRead.Position := 0;
           inc(t_bytes_read,last_bytes_read);
         end;
       end;
-    until (Result) Or ((GetTickCount > (tc+MaxWaitMiliseconds)) And (last_bytes_read=0));
+    until (Result) Or ((GetTickCount64 > (tc+MaxWaitMiliseconds)) And (last_bytes_read=0));
   finally
     Try
       if (Connected) then begin
         if (Not Result) And (FClientBufferRead.Size>0) And (Not IsValidHeaderButNeedMoreData) then begin
           deletedBytes := FClientBufferRead.Size;
           TLog.NewLog(lterror,ClassName,Format('Deleting %d bytes from TcpClient buffer of %s after max %d miliseconds. Passed: %d',
-            [deletedBytes, Client.ClientRemoteAddr,MaxWaitMiliseconds,GetTickCount-tc]));
+            [deletedBytes, Client.ClientRemoteAddr,MaxWaitMiliseconds,GetTickCount64-tc]));
           FClientBufferRead.Size:=0;
           DisconnectInvalidClient(false,'Invalid data received in buffer ('+inttostr(deletedBytes)+' bytes)');
         end;
@@ -2696,8 +2687,7 @@ begin
         ' Size:'+InttoStr(Buffer.Size)+'b '+s+'to '+
         ClientRemoteAddr);
       Client.Send(Buffer.Memory, Buffer.Size);
-      FLastDataSendedTS := GetTickCount;
-      FRandomWaitSecondsSendHello := 90 + Random(60);
+      FLastDataSendedTS := GetTickCount64;
     Finally
       FNetLock.Release;
     End;
