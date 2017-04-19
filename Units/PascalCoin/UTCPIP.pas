@@ -53,7 +53,7 @@ type
     constructor Create(AOwner : TComponent); override;
     destructor Destroy; override;
 
-    function Connect(address : string; port : Word; timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
+    function Connect(address : AnsiString; port : Word; timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
     procedure Disconnect;
 
     function WaitForData(WaitMilliseconds : Integer) : Boolean;
@@ -199,7 +199,7 @@ begin
   {$ENDIF}
 end;
 
-function TNetTcpIpClient.Connect(address : string; port : Word; timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
+function TNetTcpIpClient.Connect(address : AnsiString; port : Word; timeoutSeconds : Cardinal; stopFlag : PBoolean) : Boolean;
 var
   lastError : Cardinal;
   secondsElapsed : Cardinal;
@@ -218,7 +218,7 @@ begin
 
     previousState := FTcpBlockSocket.NonBlockMode;
     FTcpBlockSocket.NonBlockMode := true;
-    FTcpBlockSocket.ConnectionTimeout := timeoutSeconds;
+    FTcpBlockSocket.ConnectionTimeout := timeoutSeconds * 1000;
     FTcpBlockSocket.Connect(address, IntToStr(port));
     lastError := FTcpBlockSocket.LastError;
     if lastError = 0 then begin
@@ -245,7 +245,7 @@ begin
 
     if FConnected and Assigned(FOnConnect) then begin
        FOnConnect(Self);
-    end else TLog.NewLog(ltdebug,Classname,'Cannot connect to a server at: '+ClientRemoteAddr+' Reason: '+FTcpBlockSocket.GetErrorDescEx);
+    end else TLog.NewLog(ltdebug,Classname,'Cannot connect to a server at: '+ address +':' + IntToStr(port) + ' Reason: '+FTcpBlockSocket.GetErrorDescEx);
   Except
     On E:Exception do begin
       TLog.NewLog(lterror,ClassName,'Error Connecting to '+ClientRemoteAddr+': '+FTcpBlockSocket.GetErrorDescEx);

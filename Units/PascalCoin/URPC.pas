@@ -37,8 +37,6 @@ Const
 
 Type
 
-  { TRPCServer }
-
   TRPCServerThread = Class;
   TRPCServer = Class
   private
@@ -75,15 +73,13 @@ Type
     Property LogFileName : AnsiString read GetLogFileName write SetLogFileName;
   end;
 
-  { TRPCServerThread }
-
-  TRPCServerThread = Class(TPCThread)
+  TRPCServerThread = Class(TThread)
     FServerSocket:TTCPBlockSocket;
     FPort : Word;
     FBindIp : String;
     FOnTerminate : TNotifyEvent;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(bindIp : string; Port : Word);
     Destructor Destroy; Override;
@@ -91,15 +87,13 @@ Type
     property OnTerminate : TNotifyEvent write FOnTerminate;
   End;
 
-  { TRPCProcess }
-
-  TRPCProcess = class(TPCThread)
+  TRPCProcess = class(TThread)
   private
     FSock:TTCPBlockSocket;
   public
     Constructor Create (hsock:tSocket);
     Destructor Destroy; override;
-    procedure BCExecute; override;
+    procedure Execute; override;
     function ProcessMethod(Const method : String; params : TPCJSONObject; jsonresponse : TPCJSONObject; Var ErrorNum : Integer; Var ErrorDesc : String) : Boolean;
   end;
 
@@ -110,8 +104,6 @@ Uses  {$IFNDEF FPC}windows,{$ENDIF}
   SysUtils, Synautil;
 
 var _RPCServer : TRPCServer = Nil;
-
-{ TRPCServer }
 
 Procedure TRPCServer.AddRPCLog(Const Sender : String; Const Message : String);
 Begin
@@ -224,7 +216,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TRPCProcess.BCExecute;
+procedure TRPCProcess.Execute;
 var
   timeout: integer;
   s: string;
@@ -1792,9 +1784,7 @@ begin
   end;
 end;
 
-{ TRPCServerThread }
-
-procedure TRPCServerThread.BCExecute;
+procedure TRPCServerThread.Execute;
 var
   ClientSock:TSocket;
 begin

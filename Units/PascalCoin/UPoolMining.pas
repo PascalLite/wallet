@@ -62,7 +62,7 @@ Type
     Procedure SendJSONRPCResponse(result : TPCJSONObject; const id : Variant);
     Procedure SendJSONRPCMethod(const method : String; params : TPCJSONObject; const id : Variant);
     Function SendJSONRPCMethodAndWait(const method : String; params : TPCJSONObject; MaxWaitMiliseconds : Cardinal; resultObject : TPCJSONObject; processEventOnInvalid : TProcessJSONObjectEvent = Nil) : Boolean;
-    Function DoProcessBuffer(SenderThread : TPCThread; MaxWaitMiliseconds : Cardinal; DeleteBufferOnExit : Boolean; var ResponseMethod : String; var jsonObject : TPCJSONObject) : Boolean;
+    Function DoProcessBuffer(SenderThread : TThread; MaxWaitMiliseconds : Cardinal; DeleteBufferOnExit : Boolean; var ResponseMethod : String; var jsonObject : TPCJSONObject) : Boolean;
     Function GetNewId : Cardinal;
   End;
 
@@ -173,7 +173,7 @@ begin
   inherited;
 end;
 
-function TJSONRPCTcpIpClient.DoProcessBuffer(SenderThread : TPCThread; MaxWaitMiliseconds : Cardinal; DeleteBufferOnExit : Boolean; var ResponseMethod : String; var jsonObject : TPCJSONObject) : Boolean;
+function TJSONRPCTcpIpClient.DoProcessBuffer(SenderThread : TThread; MaxWaitMiliseconds : Cardinal; DeleteBufferOnExit : Boolean; var ResponseMethod : String; var jsonObject : TPCJSONObject) : Boolean;
 var
   last_bytes_read : Integer;
   jsonData : TPCJSONData;
@@ -249,7 +249,7 @@ begin
   If Not islocked then exit;
   ms := TMemoryStream.Create;
   try
-    if Assigned(SenderThread) then continue := Not SenderThread.Terminated
+    if Assigned(SenderThread) then continue := Not SenderThread.Finished
     else continue := true;
     while (Connected) And ((GetTickCount<=(tc+MaxWaitMiliseconds)) Or (MaxWaitMiliseconds=0)) And (continue) do begin
       last_bytes_read := Recv(ms);
@@ -284,7 +284,7 @@ begin
         end;
       end;
       sleep(1);
-      if Assigned(SenderThread) then continue := Not SenderThread.Terminated
+      if Assigned(SenderThread) then continue := Not SenderThread.Finished
       else continue := true;
     end;
     if (length(FReceivedBuffer)>0) And (DeleteBufferOnExit) then begin

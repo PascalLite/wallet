@@ -153,7 +153,7 @@ Type
     FNetData : TNetData;
   end;
 
-  TNetDataNotifyEventsThread = Class(TPCThread)
+  TNetDataNotifyEventsThread = Class(TThread)
   private
     FNetData: TNetData;
     FNotifyOnReceivedHelloMessage : Boolean;
@@ -163,28 +163,28 @@ Type
     FNotifyOnBlackListUpdated : Boolean;
   protected
     procedure SynchronizedNotify;
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(ANetData : TNetData);
   End;
 
-  TNetClientsDestroyThread = Class(TPCThread)
+  TNetClientsDestroyThread = Class(TThread)
   private
     FNetData : TNetData;
     FTerminatedAllConnections : Boolean;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     constructor Create(NetData : TNetData);
     procedure WaitForTerminatedAllConnections;
   end;
 
-  TThreadCheckConnections = Class(TPCThread)
+  TThreadCheckConnections = Class(TThread)
   private
     FNetData : TNetData;
     FLastCheckTS : QWord;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     constructor Create(NetData : TNetData);
   end;
@@ -338,7 +338,7 @@ Type
     constructor Create(AOwner : TComponent; const client : TNetTcpIpClient); overload;
     destructor Destroy; override;
 
-    Function ConnectTo(ServerIP: String; ServerPort:Word; stop : PBoolean = Nil) : Boolean;
+    Function ConnectTo(ServerIP: AnsiString; ServerPort:Word; stop : PBoolean = Nil) : Boolean;
     Property Connected : Boolean read GetConnected;
     Function Send_Hello(NetTranferType : TNetTransferType; request_id : Integer) : Boolean;
     Function Send_NewBlockFound : Boolean;
@@ -361,11 +361,11 @@ Type
   End;
 
   TNetClient = Class;
-  TNetClientThread = Class(TPCThread)
+  TNetClientThread = Class(TThread)
   private
     FNetClient : TNetClient;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(NetClient : TNetClient; AOnTerminateThread : TNotifyEvent);
   End;
@@ -1620,12 +1620,10 @@ end;
 
 function TNetConnection.ClientRemoteAddr: AnsiString;
 begin
-  If Assigned(FTcpIpClient) then begin
-    Result := FtcpIpClient.ClientRemoteAddr
-  end else Result := 'NIL';
+  Result := FTcpIpClient.ClientRemoteAddr;
 end;
 
-function TNetConnection.ConnectTo(ServerIP: String; ServerPort: Word; stop : PBoolean = Nil) : Boolean;
+function TNetConnection.ConnectTo(ServerIP: AnsiString; ServerPort: Word; stop : PBoolean = Nil) : Boolean;
 Var Pnsa : PNodeServerAddress;
   lns : TList;
   i : Integer;
@@ -1641,9 +1639,12 @@ begin
     TNetData.NetData.FNodeServers.UnlockList;
   end;
 
-  TPCThread.ProtectEnterCriticalSection(Self,FNetLock);
+  FNetLock.Acquire;
   Try
-    if ServerPort<=0 then ServerPort := CT_NetServer_Port;
+    if ServerPort = 0 then
+    begin
+      ServerPort := CT_NetServer_Port;
+    end;
     TLog.NewLog(ltDebug,Classname,'Trying to connect to a server at: '+ClientRemoteAddr);
     TNetData.NetData.NotifyNetConnectionUpdated;
 
@@ -1830,7 +1831,7 @@ begin
     if Not Connected then exit;
     ms := TMemoryStream.Create;
     try
-      TPCThread.ProtectEnterCriticalSection(Self,FNetLock);
+      FNetLock.Acquire;
       Try
         if Not FIsWaitingForResponse then begin
           DebugStep := 'is not waiting for response, do send';
@@ -2376,7 +2377,7 @@ begin
   end;
   If Not Assigned(FTcpIpClient) then exit;
   if Not Client.Connected then exit;
-  TPCThread.ProtectEnterCriticalSection(Self,FNetLock);
+  FNetLock.Acquire;
   Try
     was_waiting_for_response := RequestId>0;
     try
@@ -2543,7 +2544,7 @@ begin
   Result := false;
   HeaderData := CT_NetHeaderData;
   BufferData.Size := 0;
-  TPCThread.ProtectEnterCriticalSection(Self,FNetLock);
+  FNetLock.Acquire;
   try
     tc := GetTickCount;
     repeat
@@ -2680,7 +2681,7 @@ begin
       s := '';
     end;
     Buffer.Position := 0;
-    TPCThread.ProtectEnterCriticalSection(Self,FNetLock);
+    FNetLock.Acquire;
     Try
       TLog.NewLog(ltDebug,Classname,'Sending: '+CT_NetTransferType[NetTranferType]+' operation:'+
         TNetData.OperationToText(operation)+' id:'+Inttostr(request_id)+' errorcode:'+InttoStr(errorcode)+
@@ -2905,9 +2906,7 @@ begin
   TNetData.NetData.NotifyNetConnectionUpdated;
 end;
 
-{ TNetClientThread }
-
-procedure TNetClientThread.BCExecute;
+procedure TNetClientThread.Execute;
 begin
   while (Not Terminated) do begin
     If FNetClient.Connected then begin
@@ -2988,7 +2987,7 @@ begin
       NC.FTcpIpClient.SetSocks5(FNetData.FSocks5Address, FNetData.FSocks5Port);
     end;
     Try
-      If NC.ConnectTo(FNodeServerAddress.ip,FNodeServerAddress.port, @Terminated) then begin
+      If NC.ConnectTo(FNodeServerAddress.ip, FNodeServerAddress.port, @Terminated) then begin
         ok := NC.Connected;
       end;
     Finally
@@ -3017,9 +3016,7 @@ begin
   inherited Create(false);
 end;
 
-{ TThreadCheckConnections }
-
-procedure TThreadCheckConnections.BCExecute;
+procedure TThreadCheckConnections.Execute;
 Var l : TList;
   i, nactive,ndeleted,nserverclients : Integer;
   netconn : TNetConnection;
@@ -3192,9 +3189,7 @@ begin
   end;
 end;
 
-{ TNetDataNotifyEventsThread }
-
-procedure TNetDataNotifyEventsThread.BCExecute;
+procedure TNetDataNotifyEventsThread.Execute;
 begin
   while (not Terminated) do begin
     if (FNotifyOnReceivedHelloMessage) Or
@@ -3250,9 +3245,7 @@ begin
   end;
 end;
 
-{ TNetClientsDestroyThread }
-
-procedure TNetClientsDestroyThread.BCExecute;
+procedure TNetClientsDestroyThread.Execute;
 Var l,l_to_del : TList;
   i : Integer;
 begin
@@ -3275,7 +3268,6 @@ begin
       for i := 0 to l_to_del.Count - 1 do begin
         If FNetData.ConnectionLock(Self,TNetConnection(l_to_del[i])) then begin
           try
-            DebugStep := 'Destroying NetClient '+TNetConnection(l_to_del[i]).ClientRemoteAddr;
             TNetConnection(l_to_del[i]).Free;
           finally
             // Not Necessary because on Freeing then Lock is deleted.

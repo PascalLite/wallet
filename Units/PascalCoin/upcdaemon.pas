@@ -27,19 +27,19 @@ uses
   UThread, URPC, UPoolMining, UAccounts, UAppParams;
 
 Type
-  { TPCDaemonThread }
 
-  TPCDaemonThread = Class(TPCThread)
+  TPCDaemonThread = Class(TThread)
   private
     FAppParams : TAppParams;
+    FNetData : TNetData;
   protected
-    Procedure BCExecute; override;
+    Procedure Execute; override;
+  private
+    procedure OnNetConnectionsUpdated(Sender: TObject);
   public
     constructor Create;
     destructor Destroy; override;
   end;
-
-  { TPCDaemon }
 
   TPCDaemon = Class(TCustomDaemon)
   Private
@@ -73,12 +73,18 @@ Var _FLog : TLog;
   OldSignalHandler : signalhandler;
   {$ENDIF}
 
-{ TPCDaemonThread }
+procedure TPCDaemonThread.OnNetConnectionsUpdated(Sender: TObject);
+var
+  NS : TNetStatistics;
+begin
+  NS :=  FNetData.NetStatistics;
+  TLog.NewLog(ltInfo,ClassName, Format('Connections: %d Clients: %d Servers: %d - Rcvd: %d Kb Sent: %d Kb',
+    [NS.ClientsConnections + NS.ServersConnectionsWithResponse, NS.ClientsConnections, NS.ServersConnectionsWithResponse,NS.BytesReceived DIV 1024,NS.BytesSend DIV 1024]));
+end;
 
-procedure TPCDaemonThread.BCExecute;
+procedure TPCDaemonThread.Execute;
 var
   FNode : TNode;
-  FNetData : TNetData;
   FWalletKeys : TWalletKeysExt;
   FRPC : TRPCServer;
   FMinerServer : TPoolMiningServer;
@@ -220,6 +226,7 @@ begin
         with FAppParams.GetValue(CT_PARAM_SOCKS5_PROXY) do
         begin
           FNetData := TNetData.Create(nil, address, port);
+          FNetData.OnNetConnectionsUpdated := @OnNetConnectionsUpdated;
         end;
         // RPC Server
         InitRPCServer;

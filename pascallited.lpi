@@ -33,7 +33,7 @@
         <Display Use="True" Value=""/>
       </local>
     </RunParams>
-    <Units Count="8">
+    <Units Count="9">
       <Unit0>
         <Filename Value="pascallited.pp"/>
         <IsPartOfProject Value="True"/>
@@ -66,6 +66,10 @@
         <Filename Value="Units\PascalCoin\UNetProtocol.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit7>
+      <Unit8>
+        <Filename Value="Units\PascalCoin\difficulty.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit8>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
