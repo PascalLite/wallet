@@ -30,13 +30,11 @@ type
 
   TLog = Class;
 
-  { TThreadSafeLogEvent }
-
-  TThreadSafeLogEvent = Class(TPCThread)
+  TThreadSafeLogEvent = Class(TThread)
     FLog : TLog;
     Procedure SynchronizedProcess;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(Suspended : Boolean);
   End;
@@ -199,9 +197,7 @@ begin
   end;
 end;
 
-{ TThreadSafeLogEvent }
-
-procedure TThreadSafeLogEvent.BCExecute;
+procedure TThreadSafeLogEvent.Execute;
 begin
   while (not Terminated) do begin
     sleep(100);

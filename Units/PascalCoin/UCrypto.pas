@@ -149,6 +149,7 @@ end;
 destructor TECPrivateKey.Destroy;
 begin
   if Assigned(FPrivateKey) then EC_KEY_free(FPrivateKey);
+  inherited;
 end;
 
 function TECPrivateKey.ExportToRaw: TRawBytes;

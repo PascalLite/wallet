@@ -28,21 +28,9 @@ uses
   Classes, SyncObjs;
 
 Type
-  TPCThread = Class;
-  TPCThreadClass = Class of TPCThread;
-  TPCThread = Class(TThread)
-  private
-    FDebugStep: String;
-    FStartTickCount : Cardinal;
-  protected
-    procedure DoTerminate; override;
-    procedure Execute; override;
-    procedure BCExecute; virtual; abstract;
+  TPCThread = Class(TObject)
   public
-    Class Procedure ProtectEnterCriticalSection(Const Sender : TObject; var Lock : TCriticalSection);
     Class Function TryProtectEnterCriticalSection(Const Sender : TObject; MaxWaitMilliseconds : Cardinal; var Lock : TCriticalSection) : Boolean;
-    Property DebugStep : String read FDebugStep write FDebugStep;
-    property Terminated;
   End;
 
   TPCThreadList = class
@@ -65,48 +53,6 @@ implementation
 uses
   SysUtils, ULog;
 
-{ TPCThread }
-
-procedure TPCThread.DoTerminate;
-begin
-  inherited;
-end;
-
-procedure TPCThread.Execute;
-begin
-  FStartTickCount := GetTickCount;
-  FDebugStep := '';
-  try
-    TLog.NewLog(ltdebug,Classname,'Starting Thread');
-    Try
-      Try
-        BCExecute;
-        FDebugStep := 'Finalized BCExecute';
-      Finally
-        Terminate;
-      End;
-    Except
-      On E:Exception do begin
-        TLog.NewLog(lterror,Classname,'Exception inside a Thread at step: '+FDebugStep+' ('+E.ClassName+'): '+E.Message);
-        Raise;
-      end;
-    End;
-  finally
-    TLog.NewLog(ltdebug,Classname,'Finalizing Thread. Working time: '+FormatFloat('0.000',(GetTickCount-FStartTickCount) / 1000)+' sec');
-  end;
-end;
-
-class procedure TPCThread.ProtectEnterCriticalSection(Const Sender : TObject; var Lock: TCriticalSection);
-begin
-  if Not Lock.TryEnter then begin
-//    TLog.NewLog(ltdebug,Sender.Classname,Format('Locked critical section (WAIT): LockCount:%d RecursionCount:%d Semaphore:%d LockOwnerThread:%s',[
-//      Lock.LockCount,Lock.RecursionCount,Lock.LockSemaphore,IntToHex(Lock.OwningThread,8) ]));
-    Lock.Acquire;
-//    TLog.NewLog(ltdebug,Sender.Classname,Format('UnLocked critical section (ENTER): LockCount:%d RecursionCount:%d Semaphore:%d LockOwnerThread:%s',[
-//      Lock.LockCount,Lock.RecursionCount,Lock.LockSemaphore,IntToHex(Lock.OwningThread,8) ]));
-  end;
-end;
-
 class function TPCThread.TryProtectEnterCriticalSection(const Sender: TObject;
   MaxWaitMilliseconds: Cardinal; var Lock: TCriticalSection): Boolean;
 Var tc : Cardinal;
@@ -124,8 +70,6 @@ begin
     TLog.NewLog(ltdebug,Classname,s);
   end;
 end;
-
-{ TPCThreadList }
 
 function TPCThreadList.Add(Item: Pointer) : Integer;
 begin
@@ -167,7 +111,7 @@ end;
 
 function TPCThreadList.LockList: TList;
 begin
-  TPCThread.ProtectEnterCriticalSection(Self,FLock);
+  FLock.Acquire;
   Result := FList;
 end;
 

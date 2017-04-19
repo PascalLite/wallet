@@ -1031,7 +1031,7 @@ end;
 
 procedure TPCSafeBox.StartThreadSafe;
 begin
-  TPCThread.ProtectEnterCriticalSection(Self,FLock);
+  FLock.Acquire;
 end;
 
 { TPCSafeBoxTransaction }

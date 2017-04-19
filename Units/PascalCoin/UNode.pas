@@ -85,13 +85,13 @@ Type
 
   TNodeNotifyEvents = Class;
 
-  TThreadSafeNodeNotifyEvent = Class(TPCThread)
+  TThreadSafeNodeNotifyEvent = Class(TThread)
     FNodeNotifyEvents : TNodeNotifyEvents;
     FNotifyBlocksChanged : Boolean;
     FNotifyOperationsChanged : Boolean;
     Procedure SynchronizedProcess;
   protected
-    procedure BCExecute; override;
+    procedure Execute; override;
   public
     Constructor Create(ANodeNotifyEvents : TNodeNotifyEvents);
   End;
@@ -752,9 +752,7 @@ begin
   end;
 end;
 
-{ TThreadSafeNodeNotifyEvent }
-
-procedure TThreadSafeNodeNotifyEvent.BCExecute;
+procedure TThreadSafeNodeNotifyEvent.Execute;
 begin
   while (not Terminated) AND (Assigned(FNodeNotifyEvents)) do begin
     if (FNotifyOperationsChanged) Or (FNotifyBlocksChanged) Or (FNodeNotifyEvents.FMessages.Count>0) then Synchronize(SynchronizedProcess);
@@ -775,21 +773,17 @@ begin
     If (Terminated) Or (Not Assigned(FNodeNotifyEvents)) then exit;
     if FNotifyBlocksChanged then begin
       FNotifyBlocksChanged := false;
-      DebugStep:='Notify OnBlocksChanged';
       if Assigned(FNodeNotifyEvents) And (Assigned(FNodeNotifyEvents.FOnBlocksChanged)) then
         FNodeNotifyEvents.FOnBlocksChanged(FNodeNotifyEvents);
     end;
     if FNotifyOperationsChanged then begin
       FNotifyOperationsChanged := false;
-      DebugStep:='Notify OnOperationsChanged';
       if Assigned(FNodeNotifyEvents) And (Assigned(FNodeNotifyEvents.FOnOperationsChanged)) then
         FNodeNotifyEvents.FOnOperationsChanged(FNodeNotifyEvents);
     end;
     if FNodeNotifyEvents.FMessages.Count>0 then begin
-      DebugStep:='Notify OnNodeMessageEvent';
       if Assigned(FNodeNotifyEvents) And (Assigned(FNodeNotifyEvents.FOnNodeMessageEvent)) then begin
         for i := 0 to FNodeNotifyEvents.FMessages.Count - 1 do begin
-          DebugStep:='Notify OnNodeMessageEvent '+inttostr(i+1)+'/'+inttostr(FNodeNotifyEvents.FMessages.Count);
           FNodeNotifyEvents.FOnNodeMessageEvent(TNetConnection(FNodeNotifyEvents.FMessages.Objects[i]),FNodeNotifyEvents.FMessages.Strings[i]);
         end;
       end;
@@ -797,7 +791,7 @@ begin
     end;
   Except
     On E:Exception do begin
-      TLog.NewLog(lterror,ClassName,'Exception inside a Synchronized process: '+E.ClassName+':'+E.Message+' Step:'+DebugStep);
+      TLog.NewLog(lterror,ClassName,'Exception inside a Synchronized process: '+E.ClassName+':'+E.Message);
     end;
   End;
 end;

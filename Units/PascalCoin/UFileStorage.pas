@@ -554,7 +554,7 @@ var
   exists : Boolean;
   errors : String;
 begin
-  TPCThread.ProtectEnterCriticalSection(Self,FStorageLock);
+  FStorageLock.Acquire;
   Try
     if Not Assigned(FBlockChainStream) then begin
       if FBlockChainFileName<>'' then begin

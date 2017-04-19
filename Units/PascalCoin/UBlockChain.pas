@@ -20,7 +20,14 @@ unit UBlockChain;
 interface
 
 uses
-  Classes, UCrypto, UAccounts, ULog, UThread, SyncObjs;
+  difficulty, 
+  UCrypto,
+  UAccounts,
+  ULog,
+  UThread,
+  Classes,
+  math,
+  SyncObjs;
 {$I config.inc}
 
 
@@ -428,7 +435,7 @@ var
   i : Integer;
   maxAllowedTimestamp : Cardinal;
 begin
-  TPCThread.ProtectEnterCriticalSection(Self,FBankLock);
+  FBankLock.Acquire;
   Try
     Result := False;
     errors := '';
@@ -622,7 +629,7 @@ begin
     TLog.NewLog(lterror,Classname,'Is Restoring!!!');
     raise Exception.Create('Is restoring!');
   end;
-  TPCThread.ProtectEnterCriticalSection(Self,FBankLock);
+  FBankLock.Acquire;
   try
     FIsRestoringFromFile := true;
     try
@@ -680,13 +687,30 @@ function TPCBank.GetActualTargetHash: AnsiString;
     If Block is lower than CT_CalcNewDifficulty then is calculated
     with all previous blocks.
   }
-Var ts1, ts2, tsTeorical, tsReal: Int64;
+var
+  ts1, ts2, tsTeorical, tsReal: Int64;
   CalcBack : Integer;
+  timestamps : array of QWord;
+  timestampsSize : Cardinal;
+  i : Cardinal;
 begin
-  if (BlocksCount <= 1) then begin
+  if BlocksCount <= 1 then
+  begin
     // Important: CT_MinCompactTarget is applied for blocks 0 until ((CT_CalcNewDifficulty*2)-1)
     FActualTargetHash := TargetFromCompact(CT_MinCompactTarget);
-  end else begin
+  end
+  else if BlocksCount >= DIFFICULTY_HARDFORK_HEIGHT then
+  begin
+    timestampsSize := Min(BlocksCount, DIFFICULTY_TIMESTAMPS);
+    SetLength(timestamps, timestampsSize);
+    for i := 1 to timestampsSize do
+    begin
+      timestamps[i - 1] := SafeBox.Block(BlocksCount - i).timestamp;
+    end;
+    FActualTargetHash := TDifficulty.GetNextTarget(timestamps, TargetFromCompact(FLastOperationBlock.compact_target));
+  end
+  else
+  begin
     if BlocksCount > CT_CalcNewTargetBlocksAverage then CalcBack := CT_CalcNewTargetBlocksAverage
     else CalcBack := BlocksCount-1;
     // Calc new target!
@@ -694,7 +718,7 @@ begin
     ts2 := SafeBox.Block(BlocksCount-CalcBack-1).timestamp;
     tsTeorical := (CalcBack * CT_NewLineSecondsAvg);
     tsReal := (ts1 - ts2);
-    FActualTargetHash := GetNewTarget(tsTeorical, tsReal,TargetFromCompact(FLastOperationBlock.compact_target));
+    FActualTargetHash := GetNewTarget(tsTeorical, tsReal, TargetFromCompact(FLastOperationBlock.compact_target));
   end;
   Result := FActualTargetHash;
 end;
@@ -810,7 +834,7 @@ begin
   Clear;
   Result := SafeBox.LoadSafeBoxFromStream(Stream,LastReadBlock,errors);
   if Result then begin
-    TPCThread.ProtectEnterCriticalSection(Self,FBankLock);
+    FBankLock.Acquire;
     try
       op := TPCOperationsComp.Create(Self);
       try
@@ -854,7 +878,7 @@ end;
 
 function TPCBank.LoadOperations(Operations: TPCOperationsComp; Block: Cardinal): Boolean;
 begin
-  TPCThread.ProtectEnterCriticalSection(Self,FBankLock);
+  FBankLock.Acquire;
   try
     if (Block>0) AND (Block=FLastBlockCache.OperationBlock.block) then begin
       // Same as cache, sending cache
