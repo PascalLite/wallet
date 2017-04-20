@@ -1,6 +1,20 @@
+// Author: xiphon, April 2017
+//
 // This file is a part of PascalLite cryptocurrency project
 //
+// Github:              <https://github.com/xiphon/PascalLite>
+// Bitcointalk thread:  <https://bitcointalk.org/index.php?topic=1773026>
+// Block Explorer:      <https://pascallite.com>
+// Accounts Marketplace <https://accounts.pascallite.com>
+//
 // Copyright (C) 2017 PascalLite project
+//
+// Redistributions and use the source code must retain
+// the above copyright notice and the following disclaimer.
+//
+// Redistributions in binary form must reproduce the above copyright notice
+// and the following disclaimer in the documentation and/or other
+// materials provided with the distribution.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,8 +28,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-// Author: xiphon <https://github.com/xiphon>, April 2017
 
 unit difficulty;
 
