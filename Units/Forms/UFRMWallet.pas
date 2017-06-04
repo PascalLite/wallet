@@ -183,6 +183,7 @@ Type
     procedure dgAccountsDblClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormWindowStateChange(Sender: TObject);
     procedure TimerUpdateStatusTimer(Sender: TObject);
     procedure cbMyPrivateKeysChange(Sender: TObject);
     procedure dgAccountsClick(Sender: TObject);
@@ -202,7 +203,6 @@ Type
     procedure MiCloseClick(Sender: TObject);
     procedure MiDecodePayloadClick(Sender: TObject);
     procedure TrayIconDblClick(Sender: TObject);
-    procedure ApplicationEventsMinimize(Sender: TObject);
     procedure bbSendAMessageClick(Sender: TObject);
     procedure lblReceivedMessagesClick(Sender: TObject);
     procedure ebFindAccountNumberChange(Sender: TObject);
@@ -365,7 +365,7 @@ begin
       FWalletKeys.WalletFileName := TFolderHelper.GetPascalCoinDataFolder+PathDelim+'WalletKeys.dat';
     Except
       On E:Exception do begin
-        E.Message := 'Cannot open your wallet... Perhaps another instance of Pascal Coin is active!'+#10+#10+E.Message;
+        E.Message := 'Cannot open your wallet... Perhaps another instance of PascalLite is active!'+#10+#10+E.Message;
         Raise;
       end;
     End;
@@ -417,17 +417,6 @@ begin
   end;
   UpdatePrivateKeys;
   UpdateAccounts(false);
-end;
-
-procedure TFRMWallet.ApplicationEventsMinimize(Sender: TObject);
-begin
-  {$IFnDEF FPC}
-  Hide();
-  WindowState := wsMinimized;
-  { Show the animated tray icon and also a hint balloon. }
-  TrayIcon.Visible := True;
-  TrayIcon.ShowBalloonHint;
-  {$ENDIF}
 end;
 
 procedure TFRMWallet.bbAccountsRefreshClick(Sender: TObject);
@@ -566,7 +555,6 @@ procedure TFRMWallet.cbExploreMyAccountsClick(Sender: TObject);
 begin
   cbMyPrivateKeys.Enabled := cbExploreMyAccounts.Checked;
   UpdateAccounts(true);
-  UpdateOperations;
 end;
 
 procedure TFRMWallet.cbFilterAccountsClick(Sender: TObject);
@@ -943,11 +931,12 @@ begin
   ebFilterOperationsEndBlock.Text := '';
   cbExploreMyAccountsClick(nil);
 
-  TrayIcon.Visible := true;
+  TrayIcon.Icon := Application.Icon;
+  TrayIcon.Visible := false;
   TrayIcon.Hint := Self.Caption;
   TrayIcon.BalloonTitle := 'Restoring the window.';
   TrayIcon.BalloonHint :=
-    'Double click the system tray icon to restore Pascal Coin';
+    'Double click the system tray icon to restore PascalLite';
   TrayIcon.BalloonFlags := bfInfo;
   MinersBlocksFound := 0;
   lblBuild.Caption := 'Build: '+CT_ClientAppVersion;
@@ -1068,6 +1057,19 @@ begin
   End;
   TLog.NewLog(ltinfo,Classname,'Destroying form - END');
   FreeAndNil(FLog);
+end;
+
+procedure TFRMWallet.FormWindowStateChange(Sender: TObject);
+begin
+  if WindowState = wsMinimized then
+  begin
+    TrayIcon.Visible := True;
+    TrayIcon.ShowBalloonHint;
+  end
+  else
+  begin
+    TrayIcon.Visible := False;
+  end;
 end;
 
 function TFRMWallet.GetAccountKeyForMiner: TAccountKey;
@@ -1601,10 +1603,9 @@ end;
 
 procedure TFRMWallet.TrayIconDblClick(Sender: TObject);
 begin
-  TrayIcon.Visible := False;
-  Show();
   WindowState := wsNormal;
   Application.BringToFront();
+  OnWindowStateChange(self);
 end;
 
 procedure TFRMWallet.UpdateAccounts(RefreshData : Boolean);
@@ -1616,66 +1617,68 @@ Var accl : TOrderedCardinalList;
   acc : TAccount;
 begin
   If Not Assigned(FOrderedAccountsKeyList) Then exit;
-  if Not RefreshData then begin
-    dgAccounts.Invalidate;
-    exit;
-  end;
-  applyfilter := (cbFilterAccounts.Checked) and ((FMinAccountBalance>0) Or (FMaxAccountBalance<CT_MaxWalletAmount));
-  FAccountsGrid.ShowAllAccounts := (Not cbExploreMyAccounts.Checked) And (not applyfilter);
-  if Not FAccountsGrid.ShowAllAccounts then begin
-    accl := FAccountsGrid.LockAccountsList;
-    Try
-      accl.Clear;
-      if cbExploreMyAccounts.Checked then begin
-        if cbMyPrivateKeys.ItemIndex<0 then exit;
-        if cbMyPrivateKeys.ItemIndex=0 then begin
-          // All keys in the wallet
-          for i := 0 to FWalletKeys.Count - 1 do begin
-            j := FOrderedAccountsKeyList.IndexOfAccountKey(FWalletKeys[i].AccountKey);
-            if (j>=0) then begin
-              l := FOrderedAccountsKeyList.AccountKeyList[j];
-              for k := 0 to l.Count - 1 do begin
-                if applyfilter then begin
-                  acc := FNode.Bank.SafeBox.Account(l.Get(k));
-                  if (acc.balance>=FMinAccountBalance) And (acc.balance<=FMaxAccountBalance) then accl.Add(acc.account);
-                end else accl.Add(l.Get(k));
+  if Not RefreshData then
+  begin
+    FAccountsGrid.InvalidateGrid;
+  end
+  else
+  begin
+    applyfilter := (cbFilterAccounts.Checked) and ((FMinAccountBalance>0) Or (FMaxAccountBalance<CT_MaxWalletAmount));
+    FAccountsGrid.ShowAllAccounts := (Not cbExploreMyAccounts.Checked) And (not applyfilter);
+    if Not FAccountsGrid.ShowAllAccounts then
+    begin
+      accl := FAccountsGrid.LockAccountsList;
+      Try
+        accl.Clear;
+        if cbExploreMyAccounts.Checked then begin
+          if cbMyPrivateKeys.ItemIndex<0 then exit;
+          if cbMyPrivateKeys.ItemIndex=0 then begin
+            // All keys in the wallet
+            for i := 0 to FWalletKeys.Count - 1 do begin
+              j := FOrderedAccountsKeyList.IndexOfAccountKey(FWalletKeys[i].AccountKey);
+              if (j>=0) then begin
+                l := FOrderedAccountsKeyList.AccountKeyList[j];
+                for k := 0 to l.Count - 1 do begin
+                  if applyfilter then begin
+                    acc := FNode.Bank.SafeBox.Account(l.Get(k));
+                    if (acc.balance>=FMinAccountBalance) And (acc.balance<=FMaxAccountBalance) then accl.Add(acc.account);
+                  end else accl.Add(l.Get(k));
+                end;
+              end;
+            end;
+          end else begin
+            i := PtrInt(cbMyPrivateKeys.Items.Objects[cbMyPrivateKeys.ItemIndex]);
+            if (i>=0) And (i<FWalletKeys.Count) then begin
+              j := FOrderedAccountsKeyList.IndexOfAccountKey(FWalletKeys[i].AccountKey);
+              if (j>=0) then begin
+                l := FOrderedAccountsKeyList.AccountKeyList[j];
+                for k := 0 to l.Count - 1 do begin
+                  if applyfilter then begin
+                    acc := FNode.Bank.SafeBox.Account(l.Get(k));
+                    if (acc.balance>=FMinAccountBalance) And (acc.balance<=FMaxAccountBalance) then accl.Add(acc.account);
+                  end else accl.Add(l.Get(k));
+                end;
               end;
             end;
           end;
         end else begin
-          i := PtrInt(cbMyPrivateKeys.Items.Objects[cbMyPrivateKeys.ItemIndex]);
-          if (i>=0) And (i<FWalletKeys.Count) then begin
-            j := FOrderedAccountsKeyList.IndexOfAccountKey(FWalletKeys[i].AccountKey);
-            if (j>=0) then begin
-              l := FOrderedAccountsKeyList.AccountKeyList[j];
-              for k := 0 to l.Count - 1 do begin
-                if applyfilter then begin
-                  acc := FNode.Bank.SafeBox.Account(l.Get(k));
-                  if (acc.balance>=FMinAccountBalance) And (acc.balance<=FMaxAccountBalance) then accl.Add(acc.account);
-                end else accl.Add(l.Get(k));
-              end;
-            end;
+          // There is a filter... check every account...
+          c := 0;
+          while c < FNode.Bank.SafeBox.AccountsCount do begin
+            acc := FNode.Bank.SafeBox.Account(c);
+            if (acc.balance>=FMinAccountBalance) And (acc.balance<=FMaxAccountBalance) then accl.Add(acc.account);
+            inc(c);
           end;
         end;
-      end else begin
-        // There is a filter... check every account...
-        c := 0;
-        while c < FNode.Bank.SafeBox.AccountsCount do begin
-          acc := FNode.Bank.SafeBox.Account(c);
-          if (acc.balance>=FMinAccountBalance) And (acc.balance<=FMaxAccountBalance) then accl.Add(acc.account);
-          inc(c);
-        end;
-      end;
-    Finally
-      FAccountsGrid.UnlockAccountsList;
-    End;
-    lblAccountsCount.Caption := inttostr(accl.Count);
-  end else begin
-    lblAccountsCount.Caption := inttostr(FNode.Bank.AccountsCount);
+      Finally
+        FAccountsGrid.UnlockAccountsList;
+      End;
+    end;
   end;
   bbChangeKeyName.Enabled := cbExploreMyAccounts.Checked;
   // Show Totals:
   lblAccountsBalance.Caption := TAccountComp.FormatMoney(FAccountsGrid.AccountsBalance);
+  lblAccountsCount.Caption := inttostr(FAccountsGrid.AccountsCount);
   UpdateOperations;
 end;
 

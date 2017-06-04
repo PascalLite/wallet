@@ -71,7 +71,7 @@ Type
     //
     Procedure NotifyBlocksChanged;
     //
-    procedure GetStoredOperationsFromAccount(const OperationsResume: TOperationsResumeList; account_number: Cardinal; MaxDepth, MaxOperations : Integer);
+    procedure GetStoredOperationsFromAccount(const OperationsResume: TOperationsResumeList; account_number: Cardinal; MaxDepth: Cardinal; MaxOperations : Integer);
     Function FindOperation(Const OperationComp : TPCOperationsComp; Const OperationHash : TRawBytes; var block : Cardinal; var operation_block_index : Integer) : Boolean;
     //
     Procedure AutoDiscoverNodes(Const ips : AnsiString);
@@ -106,10 +106,11 @@ Type
     FOnOperationsChanged: TNotifyEvent;
     FMessages : TStringList;
     FOnNodeMessageEvent: TNodeMessageEvent;
-    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure SetNode(const Value: TNode);
     Procedure NotifyBlocksChanged;
     Procedure NotifyOperationsChanged;
+  protected
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     Constructor Create(AOwner : TComponent); override;
     Destructor Destroy; override;
@@ -134,7 +135,6 @@ var
   nc : TNetConnection;
   ms : TMemoryStream;
   netConnectionsList : TList;
-  s : String;
   errors2 : AnsiString;
 begin
   Result := false;
@@ -213,7 +213,6 @@ Var
   nc : TNetConnection;
   e : AnsiString;
   netConnectionsList : TList;
-  s : String;
   OPR : TOperationResume;
   ActOp : TPCOperation;
 begin
@@ -504,44 +503,47 @@ begin
   end;
 end;
 
-procedure TNode.GetStoredOperationsFromAccount(const OperationsResume: TOperationsResumeList; account_number: Cardinal; MaxDepth, MaxOperations: Integer);
-  Procedure DoGetFromBlock(block_number : Cardinal; last_balance : Int64; act_depth : Integer);
-  var opc : TPCOperationsComp;
+procedure TNode.GetStoredOperationsFromAccount(const OperationsResume: TOperationsResumeList; account_number: Cardinal; MaxDepth: Cardinal; MaxOperations: Integer);
+  function DoGetFromBlock(var block_number : Cardinal; var last_balance : UInt64; var act_depth : Cardinal) : Boolean;
+  var
+    opc : TPCOperationsComp;
     op : TPCOperation;
     OPR : TOperationResume;
     l : TList;
     i : Integer;
     next_block_number : Cardinal;
   begin
-    if (act_depth<=0) Or ((block_number<=0) And (block_number>0)) then exit;
+    Result := false;
+
+    if act_depth = 0 then exit;
 
     opc := TPCOperationsComp.Create(Nil);
     Try
-      If not Bank.Storage.LoadBlockChainBlock(opc,block_number) then begin
+      If not Bank.Storage.LoadBlockChainBlock(opc, block_number) then begin
         TLog.NewLog(lterror,ClassName,'Error searching for block '+inttostr(block_number));
         exit;
       end;
       l := TList.Create;
       try
         next_block_number := 0;
-        opc.OperationsHashTree.GetOperationsAffectingAccount(account_number,l);
+        opc.OperationsHashTree.GetOperationsAffectingAccount(account_number, l);
         for i := l.Count - 1 downto 0 do begin
           op := opc.Operation[PtrInt(l.Items[i])];
-          if (i=0) then begin
+          if i = 0 then begin
             If op.SenderAccount=account_number then next_block_number := op.Previous_Sender_updated_block
             else next_block_number := op.Previous_Destination_updated_block;
           end;
-          If TPCOperation.OperationToOperationResume(block_number,Op,account_number,OPR) then begin
+          If TPCOperation.OperationToOperationResume(block_number, Op, account_number, OPR) then begin
             OPR.NOpInsideBlock := Op.tag; // Note: Used Op.tag to include operation index inside a list
             OPR.time := opc.OperationBlock.timestamp;
             OPR.Block := block_number;
             OPR.Balance := last_balance;
-            last_balance := last_balance - ( OPR.Amount + OPR.Fee );
+            last_balance := last_balance - (OPR.Amount + OPR.Fee);
             OperationsResume.Add(OPR);
           end;
         end;
         // Is a new block operation?
-        if (TAccountComp.AccountBlock(account_number)=block_number) And ((account_number MOD CT_AccountsPerBlock)=0) then begin
+        if (TAccountComp.AccountBlock(account_number) = block_number) And ((account_number MOD CT_AccountsPerBlock) = 0) then begin
           OPR := CT_TOperationResume_NUL;
           OPR.valid := true;
           OPR.Block := block_number;
@@ -555,10 +557,14 @@ procedure TNode.GetStoredOperationsFromAccount(const OperationsResume: TOperatio
         end;
         //
         opc.Clear(true);
-        if (next_block_number>=0) And (next_block_number<block_number) And (act_depth>0)
-           And (next_block_number >= (account_number DIV CT_AccountsPerBlock))
-           And ((OperationsResume.Count<MaxOperations) Or (MaxOperations<=0))
-           then DoGetFromBlock(next_block_number,last_balance,act_depth-1);
+        if (next_block_number < block_number) And (act_depth > 0) And
+           (next_block_number >= (account_number DIV CT_AccountsPerBlock)) And
+           ((OperationsResume.Count < MaxOperations) Or (MaxOperations <= 0)) then
+        begin
+          block_number := next_block_number;
+          act_depth := act_depth - 1;
+          Result := true;
+        end;
       finally
         l.Free;
       end;
@@ -567,12 +573,15 @@ procedure TNode.GetStoredOperationsFromAccount(const OperationsResume: TOperatio
     End;
   end;
 
-Var acc : TAccount;
+var
+  acc : TAccount;
 begin
-  if MaxDepth<0 then exit;
-  if account_number>=Bank.SafeBox.AccountsCount then exit;
-  acc := Bank.SafeBox.Account(account_number);
-  if (acc.updated_block>0) Or (acc.account=0) then DoGetFromBlock(acc.updated_block,acc.balance,MaxDepth);
+  if Bank.SafeBox.Account(account_number, acc) then
+  begin
+    while DoGetFromBlock(acc.updated_block, acc.balance, MaxDepth) do
+    begin
+    end;
+  end;
 end;
 
 function TNode.FindOperation(const OperationComp: TPCOperationsComp;
