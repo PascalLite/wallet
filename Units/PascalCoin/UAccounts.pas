@@ -159,7 +159,8 @@ Type
     Class Function LoadSafeBoxStreamHeader(Stream : TStream; var BlocksCount : Cardinal) : Boolean;
     Procedure SaveSafeBoxToAStream(Stream : TStream);
     Procedure Clear;
-    Function Account(account_number : Cardinal) : TAccount;
+    function Account(account_number : Cardinal) : TAccount;
+    function Account(account_number: Cardinal; var account : TAccount) : Boolean;
     Function Block(block_number : Cardinal) : TBlockAccount;
     Function CalcSafeBoxHash : TRawBytes;
     Function CalcBlockHashRateInKhs(block_number : Cardinal; Previous_blocks_average : Cardinal) : Int64;
@@ -611,7 +612,21 @@ begin
   list.Add(TObject(NID_secp521r1)); // = 716
 end;
 
-{ TPCSafeBox }
+function TPCSafeBox.Account(account_number: Cardinal; var account : TAccount) : Boolean;
+var
+  b : Cardinal;
+begin
+  b := account_number DIV CT_AccountsPerBlock;
+  if b < FBlockAccountsList.Count then
+  begin
+    account := PBlockAccount(FBlockAccountsList.Items[b])^.accounts[account_number MOD CT_AccountsPerBlock];
+    Result := True;
+  end
+  else
+  begin
+    Result := False;
+  end;
+end;
 
 function TPCSafeBox.Account(account_number: Cardinal): TAccount;
 var

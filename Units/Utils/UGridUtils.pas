@@ -59,6 +59,9 @@ Type
   public
     Constructor Create(AOwner : TComponent); override;
     Destructor Destroy; override;
+
+    procedure InvalidateGrid;
+
     Property DrawGrid : TDrawGrid read FDrawGrid write SetDrawGrid;
     Function LockAccountsList : TOrderedCardinalList;
     Procedure UnlockAccountsList;
@@ -226,28 +229,9 @@ begin
 end;
 
 procedure TAccountsGrid.InitGrid;
-Var i : Integer;
-  acc : TAccount;
+var
+  i : Integer;
 begin
-  FAccountsBalance := 0;
-  FAccountsCount := FAccountsList.Count;
-  if Not assigned(DrawGrid) then exit;
-  if FShowAllAccounts then begin
-    if Assigned(Node) then begin
-      if Node.Bank.AccountsCount<1 then DrawGrid.RowCount := 2
-      else DrawGrid.RowCount := Node.Bank.AccountsCount+1;
-      FAccountsBalance := Node.Bank.SafeBox.TotalBalance;
-    end else DrawGrid.RowCount := 2;
-  end else begin
-    if FAccountsList.Count<1 then DrawGrid.RowCount := 2
-    else DrawGrid.RowCount := FAccountsList.Count+1;
-    if Assigned(Node) then begin
-      for i := 0 to FAccountsList.Count - 1 do begin
-        acc := Node.Bank.SafeBox.Account( FAccountsList.Get(i) );
-        inc(FAccountsBalance, acc.balance);
-      end;
-    end;
-  end;
   DrawGrid.FixedRows := 1;
   if Length(FColumns)=0 then DrawGrid.ColCount := 1
   else DrawGrid.ColCount := Length(FColumns);
@@ -260,7 +244,7 @@ begin
     {goRangeSelect, }goDrawFocusSelected, {goRowSizing, }goColSizing, {goRowMoving,}
     {goColMoving, goEditing, }goTabs, goRowSelect, {goAlwaysShowEditor,}
     goThumbTracking{$IFnDEF FPC}, goFixedColClick, goFixedRowClick, goFixedHotTrack{$ENDIF}];
-  FDrawGrid.Invalidate;
+  InvalidateGrid;
   if Assigned(FOnUpdated) then FOnUpdated(Self);
 end;
 
@@ -351,6 +335,58 @@ begin
       UnlockAccountsList;
     end;
   end;
+end;
+
+procedure TAccountsGrid.InvalidateGrid;
+var
+  acc : TAccount;
+  i : Cardinal;
+begin
+  FAccountsBalance := 0;
+  if Not assigned(DrawGrid) then exit;
+
+  if FShowAllAccounts then
+  begin
+    if Assigned(Node) then
+    begin
+      FAccountsCount := Node.Bank.AccountsCount;
+      if Node.Bank.AccountsCount<1 then
+      begin
+        DrawGrid.RowCount := 2
+      end
+      else
+      begin
+        DrawGrid.RowCount := Node.Bank.AccountsCount+1;
+      end;
+      FAccountsBalance := Node.Bank.SafeBox.TotalBalance;
+    end
+    else
+    begin
+      FAccountsCount := 0;
+      DrawGrid.RowCount := 2;
+    end;
+  end
+  else
+  begin
+    FAccountsCount := FAccountsList.Count;
+    if FAccountsList.Count<1 then
+    begin
+      DrawGrid.RowCount := 2
+    end
+    else
+    begin
+      DrawGrid.RowCount := FAccountsList.Count+1;
+    end;
+    if Assigned(Node) and (FAccountsList.Count > 0) then
+    begin
+      for i := 0 to FAccountsList.Count - 1 do
+      begin
+        acc := Node.Bank.SafeBox.Account(FAccountsList.Get(i));
+        inc(FAccountsBalance, acc.balance);
+      end;
+    end;
+  end;
+  FDrawGrid.Invalidate;
 end;
 
 procedure TAccountsGrid.Notification(AComponent: TComponent;

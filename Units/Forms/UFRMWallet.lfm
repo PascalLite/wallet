@@ -15,6 +15,7 @@ object FRMWallet: TFRMWallet
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnWindowStateChange = FormWindowStateChange
   Position = poOwnerFormCenter
   LCLVersion = '1.6.4.0'
   object pnlTop: TPanel
@@ -493,7 +494,7 @@ object FRMWallet: TFRMWallet
     Width = 865
     ActivePage = tsMyAccounts
     Align = alClient
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 2
     OnChange = PageControlChange
     object tsMyAccounts: TTabSheet
