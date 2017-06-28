@@ -261,7 +261,7 @@ No parameters
 
 **signsendto**
 
-**signchangeke**
+**signchangekey**
 
 **operationsinfo**
 * **rawoperations** string
