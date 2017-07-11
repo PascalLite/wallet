@@ -47,6 +47,10 @@ make install
   ```bash
 sudo apt-get install lazarus
   ```
+  Under Ubuntu you'll need to install `fp-units-fcl` package
+  ```bash
+sudo apt-get install fp-units-fcl
+  ```
 
 5. Get latest release at [https://github.com/xiphon/PascalLite/releases](https://github.com/xiphon/PascalLite/releases) or checkout bleeding edge development version of PascalLite's `master`
 6. Change to the root of the source code directory, copy `libcrypto.so.1.1` from step 3, build PascalLite daemon
