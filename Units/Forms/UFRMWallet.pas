@@ -56,6 +56,9 @@ Type
   { TFRMWallet }
 
   TFRMWallet = class(TForm)
+    Image2: TImage;
+    MainMenu1: TMainMenu;
+    MainMenu2: TMainMenu;
     pnlTop: TPanel;
     Image1: TImage;
     StatusBar: TStatusBar;
@@ -95,14 +98,8 @@ Type
     lblCurrentBlock: TLabel;
     lblCurrentBlockTimeCaption: TLabel;
     lblCurrentBlockTime: TLabel;
-    lblOperationsPendingCaption: TLabel;
-    lblOperationsPending: TLabel;
     lblMiningStatusCaption: TLabel;
     lblMinersClients: TLabel;
-    lblCurrentDifficultyCaption: TLabel;
-    lblCurrentDifficulty: TLabel;
-    lblTimeAverage: TLabel;
-    Label4: TLabel;
     tsBlockChain: TTabSheet;
     Panel2: TPanel;
     Label9: TLabel;
@@ -120,9 +117,6 @@ Type
     MiDecodePayload: TMenuItem;
     ImageListIcons: TImageList;
     ApplicationEvents: {$IFDEF FPC}TApplicationProperties{$ELSE}TApplicationEvents{$ENDIF};
-    Label5: TLabel;
-    lblCurrentAccounts: TLabel;
-    lblTimeAverageAux: TLabel;
     tsMessages: TTabSheet;
     lbNetConnections: TListBox;
     bbSendAMessage: TButton;
@@ -132,8 +126,6 @@ Type
     Label12: TLabel;
     Label13: TLabel;
     Label14: TLabel;
-    Label16: TLabel;
-    lblBlocksFound: TLabel;
     pnlAccounts: TPanel;
     pnlAccountsInfo: TPanel;
     Label17: TLabel;
@@ -141,7 +133,6 @@ Type
     lblAccountsCount: TLabel;
     lblAccountsBalance: TLabel;
     lblReceivedMessages: TLabel;
-    lblBuild: TLabel;
     ebFindAccountNumber: TEdit;
     Label18: TLabel;
     IPnodes1: TMenuItem;
@@ -227,8 +218,6 @@ Type
     procedure cbFilterAccountsClick(Sender: TObject);
     procedure MiFindOperationbyOpHashClick(Sender: TObject);
   private
-    FMinersBlocksFound: Integer;
-    procedure SetMinersBlocksFound(const Value: Integer);
     Procedure CheckIsReady;
     Procedure FinishedLoadingApp;
     procedure FillOperationForm(form : TFRMOperation);
@@ -289,7 +278,6 @@ Type
   public
     { Public declarations }
     Property WalletKeys : TWalletKeysExt read FWalletKeys;
-    Property MinersBlocksFound : Integer read FMinersBlocksFound write SetMinersBlocksFound;
 
   private
     FDataLoadingThread : TThreadActivate;
@@ -938,8 +926,7 @@ begin
   TrayIcon.BalloonHint :=
     'Double click the system tray icon to restore PascalLite';
   TrayIcon.BalloonFlags := bfInfo;
-  MinersBlocksFound := 0;
-  lblBuild.Caption := 'Build: '+CT_ClientAppVersion;
+  Caption := Caption + ' ' + CT_ClientAppVersion;
   FPoolMiningServer := Nil;
 
   FCaptionOnClose := Caption + ' - Closing...';
@@ -1579,14 +1566,6 @@ begin
   end;
 end;
 
-procedure TFRMWallet.SetMinersBlocksFound(const Value: Integer);
-begin
-  FMinersBlocksFound := Value;
-  lblBlocksFound.Caption := Inttostr(Value);
-  if Value>0 then lblBlocksFound.Font.Color := clGreen
-  else lblBlocksFound.Font.Color := clDkGray;
-end;
-
 procedure TFRMWallet.TimerUpdateStatusTimer(Sender: TObject);
 begin
   Try
@@ -1715,8 +1694,6 @@ begin
 end;
 
 procedure TFRMWallet.UpdateBlockChainState;
-var
-  f, favg : real;
 begin
   UpdateNodeStatus;
 //  hr := 0;
@@ -1724,32 +1701,12 @@ begin
     if FNode.Bank.BlocksCount>0 then begin
       lblCurrentBlock.Caption :=  Inttostr(FNode.Bank.BlocksCount)+' (0..'+Inttostr(FNode.Bank.BlocksCount-1)+')'; ;
     end else lblCurrentBlock.Caption :=  '(none)';
-    lblCurrentAccounts.Caption := Inttostr(FNode.Bank.AccountsCount);
     lblCurrentBlockTime.Caption := UnixTimeToLocalElapsedTime(FNode.Bank.LastOperationBlock.timestamp);
-    lblOperationsPending.Caption := Inttostr(FNode.Operations.Count);
-    lblCurrentDifficulty.Caption := InttoHex(FNode.Operations.OperationBlock.compact_target,8);
-    favg := FNode.Bank.GetActualTargetSecondsAverage(CT_CalcNewTargetBlocksAverage);
-    f := (CT_NewLineSecondsAvg - favg) / CT_NewLineSecondsAvg;
-    lblTimeAverage.Caption := 'Last '+Inttostr(CT_CalcNewTargetBlocksAverage)+': '+FormatFloat('0.0',favg)+' sec. (Optimal '+Inttostr(CT_NewLineSecondsAvg)+'s) Deviation '+FormatFloat('0.00%',f*100);
-    if favg>=CT_NewLineSecondsAvg then begin
-      lblTimeAverage.Font.Color := clNavy;
-    end else begin
-      lblTimeAverage.Font.Color := clOlive;
-    end;
-    lblTimeAverageAux.Caption := Format('Last %d: %s sec. - %d: %s sec. - %d: %s sec. - %d: %s sec. - %d: %s sec.',[
-        CT_CalcNewTargetBlocksAverage * 2 ,FormatFloat('0.0',FNode.Bank.GetActualTargetSecondsAverage(CT_CalcNewTargetBlocksAverage * 2)),
-        ((CT_CalcNewTargetBlocksAverage * 3) DIV 2) ,FormatFloat('0.0',FNode.Bank.GetActualTargetSecondsAverage((CT_CalcNewTargetBlocksAverage * 3) DIV 2)),
-        ((CT_CalcNewTargetBlocksAverage DIV 4)*3),FormatFloat('0.0',FNode.Bank.GetActualTargetSecondsAverage(((CT_CalcNewTargetBlocksAverage DIV 4)*3))),
-        CT_CalcNewTargetBlocksAverage DIV 2,FormatFloat('0.0',FNode.Bank.GetActualTargetSecondsAverage(CT_CalcNewTargetBlocksAverage DIV 2)),
-        CT_CalcNewTargetBlocksAverage DIV 4,FormatFloat('0.0',FNode.Bank.GetActualTargetSecondsAverage(CT_CalcNewTargetBlocksAverage DIV 4))]);
+    PageControl.Pages[1].Caption := 'In Queue (' + Inttostr(FNode.Operations.Count) + ')';
   end else begin
     lblCurrentBlock.Caption := '';
-    lblCurrentAccounts.Caption := '';
     lblCurrentBlockTime.Caption := '';
-    lblOperationsPending.Caption := '';
-    lblCurrentDifficulty.Caption := '';
-    lblTimeAverage.Caption := '';
-    lblTimeAverageAux.Caption := '';
+    PageControl.Pages[1].Caption := 'In Queue';
   end;
   if (Assigned(FPoolMiningServer)) And (FPoolMiningServer.Active) then begin
     If FPoolMiningServer.ClientsCount>0 then begin
@@ -1759,9 +1716,7 @@ begin
       lblMinersClients.Caption := 'No JSON-RPC clients';
       lblMinersClients.Font.Color := clDkGray;
     end;
-    MinersBlocksFound := FPoolMiningServer.ClientsWins;
   end else begin
-    MinersBlocksFound := 0;
     lblMinersClients.Caption := 'JSON-RPC server not active';
     lblMinersClients.Font.Color := clRed;
   end;
