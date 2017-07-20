@@ -156,7 +156,7 @@ Type
     Class Function CalcBlockHash(const block : TBlockAccount):AnsiString;
     Class Function BlockAccountToText(Const block : TBlockAccount):AnsiString;
     Function LoadSafeBoxFromStream(Stream : TStream; var LastReadBlock : TBlockAccount; var errors : AnsiString) : Boolean;
-    Class Function LoadSafeBoxStreamHeader(Stream : TStream; var BlocksCount : Cardinal) : Boolean;
+    Class Function LoadSafeBoxStreamHeader(Stream : TStream; var height : Cardinal) : Boolean;
     Procedure SaveSafeBoxToAStream(Stream : TStream);
     Procedure Clear;
     function Account(account_number : Cardinal) : TAccount;
@@ -699,8 +699,13 @@ end;
 
 function TPCSafeBox.Block(block_number: Cardinal): TBlockAccount;
 begin
-  if block_number >= FBlockAccountsList.Count then raise Exception.Create('Invalid block number: '+inttostr(block_number));
-  Result := PBlockAccount(FBlockAccountsList.Items[block_number])^;
+  StartThreadSafe;
+  Try
+    if block_number >= FBlockAccountsList.Count then raise Exception.Create('Invalid block number: '+inttostr(block_number));
+    Result := PBlockAccount(FBlockAccountsList.Items[block_number])^;
+  finally
+    EndThreadSave;
+  end;
 end;
 
 class function TPCSafeBox.BlockAccountToText(const block: TBlockAccount): AnsiString;
@@ -962,7 +967,7 @@ begin
   end;
 end;
 
-class function TPCSafeBox.LoadSafeBoxStreamHeader(Stream: TStream; var BlocksCount: Cardinal): Boolean;
+class function TPCSafeBox.LoadSafeBoxStreamHeader(Stream: TStream; var height: Cardinal): Boolean;
 Var w : Word;
   s : AnsiString;
   safeBoxBankVersion : Word;
@@ -975,8 +980,8 @@ begin
   if w<>CT_BlockChain_Protocol_Version then exit;
   Stream.Read(safeBoxBankVersion,2);
   if safeBoxBankVersion<>CT_SafeBoxBankVersion then exit;
-  Stream.Read(BlocksCount,4);
-  if BlocksCount>(CT_NewLineSecondsAvg*2000000) then exit; // Protection for corrupted data...
+  Stream.Read(height, 4);
+  if height > (CT_NewLineSecondsAvg*2000000) then exit; // Protection for corrupted data...
   Result := True;
 end;
 

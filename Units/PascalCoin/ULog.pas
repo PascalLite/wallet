@@ -82,7 +82,7 @@ implementation
 
 uses SysUtils;
 
-var _logs : TList;
+var _logs : TThreadList;
 Type PLogData = ^TLogData;
 
 { TLog }
@@ -97,7 +97,7 @@ begin
   FSaveTypes := CT_TLogTypes_DEFAULT;
   FOnInThreadNewLog:=Nil;
   FOnNewLog:=Nil;
-  if (Not assigned(_logs)) then _logs := TList.Create;
+  if (Not assigned(_logs)) then _logs := TThreadList.Create;
   _logs.Add(self);
   FThreadSafeLogEvent := TThreadSafeLogEvent.Create(true);
   FThreadSafeLogEvent.FLog := Self;
@@ -111,13 +111,15 @@ var
   i : Integer;
   P : PLogData;
 begin
+  _logs.Remove(Self);
+
   FOnNewLog:=Nil;
   FOnInThreadNewLog:=Nil;
   FThreadSafeLogEvent.Terminate;
   FThreadSafeLogEvent.WaitFor;
   FreeAndNil(FThreadSafeLogEvent);
-  _logs.Remove(Self);
   FreeAndNil(FFileStream);
+
   l := FLogDataList.LockList;
   try
     for i := 0 to l.Count - 1 do begin
@@ -128,6 +130,7 @@ begin
   finally
     FLogDataList.UnlockList;
   end;
+
   FreeAndNil(FLogDataList);
   FreeAndNil(FLock);
   inherited;
@@ -139,18 +142,27 @@ begin
 end;
 
 class procedure TLog.NewLog(logtype: TLogType; Const sender, logtext: String);
-var i : Integer;
+var
+  i : Integer;
+  list : TList;
 begin
   if (Not Assigned(_logs)) then exit;
-  for i := 0 to _logs.Count - 1 do begin
-    if (TLog(_logs[i]).FProcessGlobalLogs) then begin
-      TLog(_logs[i]).NotifyNewLog(logtype,sender,logtext);
+  list := _logs.LockList;
+  try
+    for i := 0 to list.Count - 1 do begin
+      if (TLog(list[i]).FProcessGlobalLogs) then begin
+        TLog(list[i]).NotifyNewLog(logtype,sender,logtext);
+      end;
     end;
+  finally
+    _logs.UnlockList;
   end;
 end;
 
 procedure TLog.NotifyNewLog(logtype: TLogType; Const sender, logtext: String);
-Var s,tid : AnsiString;
+Var
+  s : AnsiString;
+  tid : AnsiString;
   P : PLogData;
 begin
   FLock.Acquire;
