@@ -51,6 +51,7 @@ Type
     Function GetBlockHeaderFixedSize : Int64;
     procedure SetDatabaseFolder(const Value: AnsiString);
     Procedure ClearStream;
+    class function CopyBank(source : TFileStorage; destination : TFileStorage; bankHeight : Cardinal) : Boolean;
   protected
     procedure SetReadOnly(const Value: Boolean); override;
     procedure SetOrphan(const Value: TOrphan); override;
@@ -63,7 +64,7 @@ Type
     Function BlockExists(Block : Cardinal) : Boolean; override;
     Function LockBlockChainStream : TFileStream;
     Procedure UnlockBlockChainStream;
-    Function LoadBankFileInfo(Const Filename : AnsiString; var BlocksCount : Cardinal) : Boolean;
+    Function LoadBankFileInfo(Const Filename : AnsiString; var height : Cardinal) : Boolean;
     function GetFirstBlockNumber: Int64; override;
     function GetLastBlockNumber: Int64; override;
     function DoInitialize : Boolean; override;
@@ -227,6 +228,38 @@ begin
   End;
 end;
 
+class function TFileStorage.CopyBank(source : TFileStorage; destination : TFileStorage; bankHeight : Cardinal) : Boolean;
+var
+  bankFileSrc : string;
+  bankFileDst : string;
+  streamSrc : TFileStream;
+  streamDst : TFileStream;
+begin
+  bankFileSrc := GetBankFileName(source.GetFolder(source.Orphan), bankHeight);
+  bankFileDst := GetBankFileName(destination.GetFolder(destination.Orphan), bankHeight);
+  if (bankFileSrc = '') or (bankFileDst = '') then
+  begin
+    Result := False;
+    exit;
+  end;
+  try
+    streamSrc := TFileStream.Create(bankFileSrc, fmOpenRead);
+    try
+      streamDst := TFileStream.Create(bankFileDst, fmCreate);
+      try
+        streamDst.CopyFrom(streamSrc, streamSrc.Size);
+      finally
+        streamDst.Free;
+      end;
+    finally
+      streamSrc.Free;
+    end;
+    Result := True;
+  except
+    Result := False;
+  end;
+end;
+
 function TFileStorage.DoMoveBlockChain(Start_Block: Cardinal; const DestOrphan: TOrphan; DestStorage : TStorage): Boolean;
 var
   db : TFileStorage;
@@ -235,8 +268,10 @@ var
 begin
   Result := false;
   Try
-    if (Assigned(DestStorage)) And (DestStorage is TFileStorage) then begin
-      db := TFileStorage(DestStorage)
+    if (Assigned(DestStorage)) And (DestStorage is TFileStorage) then
+    begin
+      db := TFileStorage(DestStorage);
+      CopyBank(Self, db, Bank.BlocksCount);
     end else begin
       db := Nil;
     end;
@@ -278,14 +313,15 @@ end;
 
 function TFileStorage.DoRestoreBank(max_block: Int64): Boolean;
 var
-    sr: TSearchRec;
-    FileAttrs: Integer;
-    folder : AnsiString;
-    filename,auxfn : AnsiString;
-    fs : TFileStream;
-    ms : TMemoryStream;
-    errors : AnsiString;
-    blockscount, c : Cardinal;
+  sr: TSearchRec;
+  FileAttrs: Integer;
+  folder : AnsiString;
+  filename,auxfn : AnsiString;
+  fs : TFileStream;
+  ms : TMemoryStream;
+  errors : AnsiString;
+  height : Cardinal;
+  maxHeight : Cardinal;
 begin
   Result := false;
   LockBlockChainStream;
@@ -293,15 +329,15 @@ begin
     FileAttrs := faArchive;
     folder := GetFolder(Orphan);
     filename := '';
-    blockscount := 0;
+    maxHeight := 0;
     if SysUtils.FindFirst(folder+PathDelim+'*.bank', FileAttrs, sr) = 0 then begin
       repeat
         if (sr.Attr and FileAttrs) = FileAttrs then begin
           auxfn := folder+PathDelim+sr.Name;
-          If LoadBankFileInfo(auxfn,c) then begin
-            if ((c<=max_block) AND (c>blockscount)) then begin
+          if LoadBankFileInfo(auxfn, height) then begin
+            if (height <= max_block) and (height > maxHeight) then begin
               filename := auxfn;
-              blockscount := c;
+              maxHeight := height;
             end;
           end;
         end;
@@ -309,19 +345,19 @@ begin
       FindClose(sr);
     end;
     if (filename<>'') then begin
-      TLog.NewLog(ltinfo,Self.ClassName,'Loading SafeBox with '+inttostr(blockscount)+' blocks from file '+filename);
-      fs := TFileStream.Create(filename,fmOpenRead);
+      TLog.NewLog(ltinfo,Self.ClassName, 'Loading SafeBox with ' + inttostr(maxHeight) + ' blocks from file ' + filename);
+      fs := TFileStream.Create(filename, fmOpenRead);
       try
         ms := TMemoryStream.Create;
         Try
           ms.CopyFrom(fs,0);
           fs.Position := 0;
           ms.Position := 0;
-          if Bank.LoadBankFromStream(ms,errors) then
+          if Bank.LoadBankFromStream(ms, errors) then
           begin
             Result := true;
           end else begin
-            TLog.NewLog(lterror,ClassName,'Error reading bank from file: '+filename+ ' Error: '+errors);
+            TLog.NewLog(lterror, ClassName, 'Error reading bank from file: ' + filename + ' Error: ' + errors);
           end;
         Finally
           ms.Free;
@@ -343,7 +379,7 @@ begin
   Result := true;
   bankfilename := GetBankFileName(GetFolder(Orphan),Bank.BlocksCount);
   if (bankfilename<>'') then begin
-    fs := TFileStream.Create(bankfilename,fmCreate);
+    fs := TFileStream.Create(bankfilename, fmCreate);
     try
       fs.Size := 0;
       ms := TMemoryStream.Create;
@@ -458,16 +494,17 @@ begin
   Result := FStreamLastBlockNumber;
 end;
 
-function TFileStorage.LoadBankFileInfo(const Filename: AnsiString; var BlocksCount: Cardinal): Boolean;
-var fs: TFileStream;
+function TFileStorage.LoadBankFileInfo(const Filename: AnsiString; var height: Cardinal): Boolean;
+var
+  fs: TFileStream;
 begin
   Result := false;
-  BlocksCount:=0;
+  height := 0;
   If Not FileExists(Filename) then exit;
   fs := TFileStream.Create(Filename,fmOpenRead);
   try
-    fs.Position:=0;
-    Result := Bank.LoadBankStreamHeader(fs,BlocksCount);
+    fs.Position := 0;
+    Result := Bank.LoadBankStreamHeader(fs, height);
   finally
     fs.Free;
   end;

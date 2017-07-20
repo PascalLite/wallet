@@ -226,8 +226,6 @@ Type
     function LoadOperationsHashTreeFromStream(Stream: TStream; LoadingFromStorage : Boolean; var errors : AnsiString): Boolean;
   End;
 
-  { TPCOperationsComp }
-
   TPCOperationsComp = Class(TComponent)
   private
     FBank: TPCBank;
@@ -392,7 +390,7 @@ Type
     function GetActualTargetHash: AnsiString;
     function GetActualTargetSecondsAverage(BackBlocks : Cardinal): Real;
     function LoadBankFromStream(Stream : TStream; var errors : AnsiString) : Boolean;
-    Class Function LoadBankStreamHeader(Stream : TStream; var BlocksCount : Cardinal) : Boolean;
+    class function LoadBankStreamHeader(stream : TStream; var height : Cardinal) : Boolean;
     Procedure SaveBankToStream(Stream : TStream);
     Procedure Clear;
     Function LoadOperations(Operations : TPCOperationsComp; Block : Cardinal) : Boolean;
@@ -635,7 +633,7 @@ begin
     try
       Clear;
       Storage.Initialize;
-      Storage.RestoreBank(Storage.LastBlock);
+      Storage.RestoreBank(max_block);
       // Restore last blockchain
       if BlocksCount>0 then begin
         if Not Storage.LoadBlockChainBlock(FLastBlockCache,BlocksCount-1) then begin
@@ -871,9 +869,9 @@ begin
   end;
 end;
 
-class function TPCBank.LoadBankStreamHeader(Stream: TStream; var BlocksCount: Cardinal): Boolean;
+class function TPCBank.LoadBankStreamHeader(stream : TStream; var height : Cardinal): Boolean;
 begin
-  Result := TPCSafeBox.LoadSafeBoxStreamHeader(Stream,BlocksCount);
+  Result := TPCSafeBox.LoadSafeBoxStreamHeader(stream, height);
 end;
 
 function TPCBank.LoadOperations(Operations: TPCOperationsComp; Block: Cardinal): Boolean;

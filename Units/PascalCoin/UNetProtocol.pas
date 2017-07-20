@@ -296,6 +296,7 @@ Type
     FNewBlocksUpdatesWaiting : Boolean;
     FNewOperationsList : TThreadList;
 
+    FRefCount : Cardinal;
     FFreeClientOnDestroy : Boolean;
     FTcpIpClient : TNetTcpIpClient;
     FRemoteOperationBlock : TOperationBlock;
@@ -358,6 +359,9 @@ Type
     procedure QueueNewBlockBroadcast;
     procedure QueueNewOperationBroadcast(MakeACopyOfOperationsHashTree : TOperationsHashTree);
     procedure BroadcastNewBlocksAndOperations;
+
+    function RefAdd : Boolean;
+    procedure RefDec;
   End;
 
   TNetClient = Class;
@@ -2519,6 +2523,24 @@ begin
 
 end;
 
+function TNetConnection.RefAdd : Boolean;
+begin
+  InterLockedIncrement(FRefCount);
+  if not FDoFinalizeConnection then
+  begin
+    Result := true;
+    exit;
+  end;
+
+  InterLockedDecrement(FRefCount);
+  Result := false;
+end;
+
+procedure TNetConnection.RefDec;
+begin
+  InterLockedDecrement(FRefCount);
+end;
+
 function TNetConnection.GetConnected: Boolean;
 begin
   Result := Assigned(FTcpIpClient) And (FTcpIpClient.Connected);
@@ -3160,6 +3182,10 @@ begin
         TLog.NewLog(ltdebug, Classname, Format('Candidates: %d', [candidates.Count]));
 
         connection := TNetConnection(candidates[Random(candidates.Count)]);
+        if not connection.RefAdd then
+        begin
+          Continue;
+        end;
       finally
         FNetData.ConnectionsUnlock;
       end;
@@ -3182,6 +3208,8 @@ begin
       FNetData.FMaxRemoteOperationBlock := CT_OperationBlock_NUL;
 
       InterLockedIncrement(FNetData.FBlockChainUpdateRequests);
+
+      connection.RefDec;
     finally
       candidates.Free;
     end;
@@ -3266,7 +3294,11 @@ begin
       end;
 
       for i := 0 to l_to_del.Count - 1 do begin
-        If FNetData.ConnectionLock(Self,TNetConnection(l_to_del[i])) then begin
+        if TNetConnection(l_to_del[i]).FRefCount <> 0 then
+        begin
+          Continue;
+        end;
+        If FNetData.ConnectionLock(Self, TNetConnection(l_to_del[i])) then begin
           try
             TNetConnection(l_to_del[i]).Free;
           finally
