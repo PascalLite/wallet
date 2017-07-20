@@ -88,6 +88,8 @@ var
   FWalletKeys : TWalletKeysExt;
   FRPC : TRPCServer;
   FMinerServer : TPoolMiningServer;
+  ips : AnsiString;
+  nsarr : TNodeServerAddressArray;
 
   procedure InitRPCServer;
   var
@@ -228,6 +230,12 @@ begin
           FNetData := TNetData.Create(nil, address, port);
           FNetData.OnNetConnectionsUpdated := @OnNetConnectionsUpdated;
         end;
+
+        ips := FAppParams.GetValue(CT_PARAM_TryToConnectOnlyWithThisFixedServers, '');
+        FNode.DecodeIpStringToNodeServerAddressArray(ips,nsarr);
+        FNetData.DiscoverFixedServersOnly(nsarr);
+        setlength(nsarr,0);
+
         // RPC Server
         InitRPCServer;
         Try
