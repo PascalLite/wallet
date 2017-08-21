@@ -30,9 +30,9 @@ Uses UOpenSSLdef;
 var
 {$IFDEF UNIX}
   {$IFDEF OpenSSL10}
-  SSL_C_LIB : AnsiString = './libcrypto.so.1.0.0';
+  SSL_C_LIB : AnsiString = 'libcrypto.so.1.0.0';
   {$ELSE}
-  SSL_C_LIB : AnsiString = './libcrypto.so.1.1';
+  SSL_C_LIB : AnsiString = 'libcrypto.so.1.1';
   {$ENDIF}
 {$ELSE}
   {$IFDEF FPC}
