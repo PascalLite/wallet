@@ -1052,6 +1052,7 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
           GetResultObject.GetAsVariant('result').Value:= true;
           GetResultObject.GetAsVariant('enc_payload').Value:= TCrypto.ToHexaString(RawEncryptedPayload);
           GetResultObject.GetAsVariant('unenc_payload').Value:= decrypted_payload;
+          GetResultObject.GetAsVariant('unenc_hexpayload').Value:= TCrypto.ToHexaString(decrypted_payload);
           GetResultObject.GetAsVariant('payload_method').Value:= 'key';
           GetResultObject.GetAsVariant('enc_pubkey').Value:= TCrypto.ToHexaString(TAccountComp.AccountKey2RawString(pkey.PublicKey));
           // "payload_method" types: "none","dest"(default),"sender","aes"(must provide "pwd" param)
@@ -1065,6 +1066,7 @@ function TRPCProcess.ProcessMethod(const method: String; params: TPCJSONObject;
         GetResultObject.GetAsVariant('result').Value:= true;
         GetResultObject.GetAsVariant('enc_payload').Value:= TCrypto.ToHexaString(RawEncryptedPayload);
         GetResultObject.GetAsVariant('unenc_payload').Value:= decrypted_payload;
+        GetResultObject.GetAsVariant('unenc_hexpayload').Value:= TCrypto.ToHexaString(decrypted_payload);
         GetResultObject.GetAsVariant('payload_method').Value:= 'pwd';
         GetResultObject.GetAsVariant('pwd').Value:= jsonArrayPwds.GetAsVariant(i).AsString('');
         // "payload_method" types: "none","dest"(default),"sender","aes"(must provide "pwd" param)
