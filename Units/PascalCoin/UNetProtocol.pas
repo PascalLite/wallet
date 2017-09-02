@@ -1163,7 +1163,7 @@ Const CT_LogSender = 'GetNewBlockChainFromClient';
       if start_block>=0 then begin
         // Restore a part
         Bank.DiskRestoreFromOperations(start_block-1);
-        start := start_block;
+        start := Math.min(Bank.BlocksCount, start_block);
       end else begin
         start := 0;
         start_block := 0;

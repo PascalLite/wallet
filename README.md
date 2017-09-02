@@ -6,7 +6,7 @@ Exchanges, processing systems, online shops can use console linux Daemon to cont
 
 # Compiling PascalLite from Source
 
-## Daemon (Linux)
+## Daemon (Debian)
 
 Checkout project's repository and build it
 ```bash
