@@ -57,6 +57,8 @@ Type
 
   TFRMWallet = class(TForm)
     Image2: TImage;
+    Label1: TLabel;
+    labelBalance: TLabel;
     MainMenu1: TMainMenu;
     MainMenu2: TMainMenu;
     pnlTop: TPanel;
@@ -94,12 +96,8 @@ Type
     Label3: TLabel;
     Label6: TLabel;
     Label7: TLabel;
-    lblCurrentBlockCaption: TLabel;
-    lblCurrentBlock: TLabel;
     lblCurrentBlockTimeCaption: TLabel;
     lblCurrentBlockTime: TLabel;
-    lblMiningStatusCaption: TLabel;
-    lblMinersClients: TLabel;
     tsBlockChain: TTabSheet;
     Panel2: TPanel;
     Label9: TLabel;
@@ -167,7 +165,6 @@ Type
     cbFilterAccounts: TCheckBox;
     ebFilterAccountByBalanceMin: TEdit;
     ebFilterAccountByBalanceMax: TEdit;
-    bbAccountsRefresh: TBitBtn;
     dgBlockChainExplorer: TDrawGrid;
     dgOperationsExplorer: TDrawGrid;
     MiFindOperationbyOpHash: TMenuItem;
@@ -211,7 +208,6 @@ Type
     procedure MiFindnextaccountwithhighbalanceClick(Sender: TObject);
     procedure MiFindpreviousaccountwithhighbalanceClick(Sender: TObject);
     procedure MiFindaccountClick(Sender: TObject);
-    procedure bbAccountsRefreshClick(Sender: TObject);
     procedure ebFilterAccountByBalanceMinExit(Sender: TObject);
     procedure ebFilterAccountByBalanceMinKeyPress(Sender: TObject;
       var Key: Char);
@@ -405,11 +401,6 @@ begin
   end;
   UpdatePrivateKeys;
   UpdateAccounts(false);
-end;
-
-procedure TFRMWallet.bbAccountsRefreshClick(Sender: TObject);
-begin
-  UpdateAccounts(true);
 end;
 
 procedure TFRMWallet.bbChangeKeyNameClick(Sender: TObject);
@@ -640,6 +631,7 @@ procedure TFRMWallet.CM_WalletChanged(var Msg: TMessage);
 begin
   UpdatePrivateKeys;
   FMustProcessWalletChanged := false;
+  UpdateAccounts(true);
 end;
 
 {
@@ -1389,7 +1381,7 @@ end;
 procedure TFRMWallet.OnNewAccount(Sender: TObject);
 begin
   Try
-    UpdateAccounts(false);
+    UpdateAccounts(true);
     UpdateBlockChainState;
   Except
     On E:Exception do begin
@@ -1594,7 +1586,23 @@ Var accl : TOrderedCardinalList;
   c  : Cardinal;
   applyfilter : Boolean;
   acc : TAccount;
+  sum : QWord;
 begin
+  sum := 0;
+  for i := 0 to FWalletKeys.Count - 1 do
+  begin
+    j := FOrderedAccountsKeyList.IndexOfAccountKey(FWalletKeys[i].AccountKey);
+    if (j>=0) then
+    begin
+      l := FOrderedAccountsKeyList.AccountKeyList[j];
+      for k := 0 to l.Count - 1 do
+      begin
+        sum := sum + FNode.Bank.SafeBox.Account(l.Get(k)).balance;
+      end;
+    end;
+  end;
+  labelBalance.Caption := Format('%.4f PASL', [0.0001 * sum]);
+
   If Not Assigned(FOrderedAccountsKeyList) Then exit;
   if Not RefreshData then
   begin
@@ -1698,27 +1706,11 @@ begin
   UpdateNodeStatus;
 //  hr := 0;
   if Assigned(FNode) then begin
-    if FNode.Bank.BlocksCount>0 then begin
-      lblCurrentBlock.Caption :=  Inttostr(FNode.Bank.BlocksCount)+' (0..'+Inttostr(FNode.Bank.BlocksCount-1)+')'; ;
-    end else lblCurrentBlock.Caption :=  '(none)';
-    lblCurrentBlockTime.Caption := UnixTimeToLocalElapsedTime(FNode.Bank.LastOperationBlock.timestamp);
+    lblCurrentBlockTime.Caption := IntToStr(FNode.Bank.BlocksCount) + ' | ' + UnixTimeToLocalElapsedTime(FNode.Bank.LastOperationBlock.timestamp);
     PageControl.Pages[1].Caption := 'In Queue (' + Inttostr(FNode.Operations.Count) + ')';
   end else begin
-    lblCurrentBlock.Caption := '';
     lblCurrentBlockTime.Caption := '';
     PageControl.Pages[1].Caption := 'In Queue';
-  end;
-  if (Assigned(FPoolMiningServer)) And (FPoolMiningServer.Active) then begin
-    If FPoolMiningServer.ClientsCount>0 then begin
-      lblMinersClients.Caption := IntToStr(FPoolMiningServer.ClientsCount)+' connected JSON-RPC clients';
-      lblMinersClients.Font.Color := clNavy;
-    end else begin
-      lblMinersClients.Caption := 'No JSON-RPC clients';
-      lblMinersClients.Font.Color := clDkGray;
-    end;
-  end else begin
-    lblMinersClients.Caption := 'JSON-RPC server not active';
-    lblMinersClients.Font.Color := clRed;
   end;
 end;
 
