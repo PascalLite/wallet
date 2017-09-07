@@ -216,6 +216,10 @@ begin
   If hCrypt=0 then begin
     {$IFDEF UNIX}
     hCrypt := LoadLibrary(SSL_C_LIB);
+    if hCrypt = 0 then
+    begin
+      hCrypt := LoadLibrary('./' + SSL_C_LIB);
+    end;
     {$ELSE}
     hCrypt := LoadLibraryA(PAnsiChar(SSL_C_LIB));
     {$ENDIF}
