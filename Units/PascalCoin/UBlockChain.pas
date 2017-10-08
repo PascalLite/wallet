@@ -468,7 +468,7 @@ begin
         maxAllowedTimestamp := maxAllowedTimestamp + CT_MaxSecondsFutureBlockTime;
         if Operations.OperationBlock.timestamp > maxAllowedTimestamp then begin
           errors := 'Invalid timestamp (Future time '+Inttostr(Operations.OperationBlock.timestamp)+'-'+inttostr(UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+'='+
-             inttostr(Operations.OperationBlock.timestamp-UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+' > '+inttostr(CT_MaxSecondsDifferenceOfNetworkNodes)+')';
+             inttostr(Operations.OperationBlock.timestamp-UnivDateTimeToUnix(DateTime2UnivDateTime(now)))+' > '+inttostr(CT_MaxSecondsFutureBlockTime)+')';
           exit;
         end;
       end else begin
