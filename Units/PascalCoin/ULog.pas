@@ -180,7 +180,7 @@ begin
       New(P);
       P^.Logtype := logtype;
       P^.Time := now;
-      P^.ThreadID :=TThread.CurrentThread.ThreadID;
+      P^.ThreadID := GetCurrentThreadId;
       P^.Sender := sender;
       P^.Logtext := logtext;
       FLogDataList.Add(P);

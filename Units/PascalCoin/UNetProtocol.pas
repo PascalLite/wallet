@@ -2037,16 +2037,15 @@ begin
         end else begin
           // Receiving an unexpected operationblock
           TLog.NewLog(lterror,classname,'Received a distinct block, finalizing: '+TPCOperationsComp.OperationBlockToText(op.OperationBlock)+' (My block: '+TPCOperationsComp.OperationBlockToText(TNode.Node.Bank.LastOperationBlock)+')' );
-          FIsDownloadingBlocks := false;
           exit;
         end;
       end;
-      FIsDownloadingBlocks := false;
       if ((opcount>0) And (FRemoteOperationBlock.block>=TNode.Node.Bank.BlocksCount)) then begin
         Send_GetBlocks(TNode.Node.Bank.BlocksCount,1000,i);
       end;
       TNode.Node.NotifyBlocksChanged;
     Finally
+      FIsDownloadingBlocks := false;
       op.Free;
     End;
   Finally
@@ -3174,12 +3173,12 @@ begin
             candidates.Add(nc);
           end;
         end;
+        TLog.NewLog(ltdebug, Classname, Format('Candidates: %d Downloading: %d', [candidates.Count, downloading]));
+
         if downloading or (candidates.Count = 0) then
         begin
           continue;
         end;
-
-        TLog.NewLog(ltdebug, Classname, Format('Candidates: %d', [candidates.Count]));
 
         connection := TNetConnection(candidates[Random(candidates.Count)]);
         if not connection.RefAdd then
