@@ -586,11 +586,11 @@ end;
 function TNetData.Connection(index: Integer): TNetConnection;
 Var l : TList;
 begin
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     Result := TNetConnection( l[index] );
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
 end;
 
@@ -599,7 +599,7 @@ var i : Integer;
   l : TList;
 begin
   Result := false;
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     for i := 0 to l.Count - 1 do begin
       if TObject(l[i])=ObjectPointer then begin
@@ -608,7 +608,7 @@ begin
       end;
     end;
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
 end;
 
@@ -617,7 +617,7 @@ var i : Integer;
   l : TList;
 begin
   Result := false;
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     for i := 0 to l.Count - 1 do begin
       if TObject(l[i])=ObjectPointer then begin
@@ -626,7 +626,7 @@ begin
       end;
     end;
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
 end;
 
@@ -635,7 +635,7 @@ var i : Integer;
   l : TList;
 begin
   Result := false;
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     for i := 0 to l.Count - 1 do begin
       if TObject(l[i])=ObjectPointer then begin
@@ -644,7 +644,7 @@ begin
       end;
     end;
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
 end;
 
@@ -652,7 +652,7 @@ function TNetData.ConnectionsCount(CountOnlyNetClients : Boolean): Integer;
 var i : Integer;
   l : TList;
 begin
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     if CountOnlyNetClients then begin
       Result := 0;
@@ -661,7 +661,7 @@ begin
       end;
     end else Result := l.Count;
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
 end;
 
@@ -679,7 +679,7 @@ procedure TNetData.ConnectionUnlock(ObjectPointer: TObject);
 var i : Integer;
   l : TList;
 begin
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     for i := 0 to l.Count - 1 do begin
       if TObject(l[i])=ObjectPointer then begin
@@ -688,7 +688,7 @@ begin
       end;
     end;
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
 end;
 
@@ -775,14 +775,14 @@ begin
   RTLeventdestroy(FBlockChainUpdateEvent);
 
   // Closing connections
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   Try
     for i := 0 to l.Count - 1 do begin
       TNetConnection(l[i]).FTcpIpClient.Disconnect;
       TNetConnection(l[i]).FinalizeConnection;
     end;
   Finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   End;
 
   FNetClientsDestroyThread.WaitForTerminatedAllConnections;
@@ -825,7 +825,7 @@ procedure TNetData.DisconnectClients;
 var i : Integer;
   l : TList;
 begin
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   Try
     for i := l.Count - 1 downto 0 do begin
       if TObject(l[i]) is TNetClient then begin
@@ -834,7 +834,7 @@ begin
       end;
     end;
   Finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   End;
 end;
 
@@ -1005,14 +1005,14 @@ function TNetData.FindConnectionByClientRandomValue(Sender: TNetConnection): TNe
 Var l : TList;
   i : Integer;
 begin
-  l := FNetConnections.LockList;
+  l := ConnectionsLock;
   try
     for i := 0 to L.Count - 1 do begin
       Result := TNetConnection( l[i] );
       If TAccountComp.Equal(Result.FClientPublicKey,Sender.FClientPublicKey) And (Sender<>Result) then exit;
     end;
   finally
-    FNetConnections.UnlockList;
+    ConnectionsUnlock;
   end;
   Result := Nil;
 end;
@@ -1405,13 +1405,13 @@ begin
   inherited;
   if Operation=OpRemove then begin
     if not (csDestroying in ComponentState) then begin
-      l := FNetConnections.LockList;
+      l := ConnectionsLock;
       try
         if l.Remove(AComponent)>=0 then begin
           NotifyNetConnectionUpdated;
         end;
       finally
-        FNetConnections.UnlockList;
+        ConnectionsUnlock;
       end;
     end;
   end;
@@ -3104,7 +3104,7 @@ begin
             netserverclientstop.FinalizeConnection;
           end;
         finally
-          FNetData.FNetConnections.UnlockList;
+          FNetData.ConnectionsUnlock;
         end;
         if (nactive<=CT_MaxServersConnected) And (Not Terminated) then begin
           // Discover
@@ -3173,7 +3173,7 @@ begin
             candidates.Add(nc);
           end;
         end;
-        TLog.NewLog(ltdebug, Classname, Format('Candidates: %d Downloading: %d', [candidates.Count, downloading]));
+        TLog.NewLog(ltdebug, Classname, Format('Candidates: %d Downloading: %s', [candidates.Count, BoolToStr(downloading, 'Yes', 'No')]));
 
         if downloading or (candidates.Count = 0) then
         begin
@@ -3209,10 +3209,12 @@ begin
       InterLockedIncrement(FNetData.FBlockChainUpdateRequests);
 
       connection.RefDec;
-    finally
-      candidates.Free;
+    except
+      On E:Exception do begin
+        TLog.NewLog(lterror, ClassName, E.ClassName + ': ' + E.Message);
+      end;
     end;
-
+    candidates.Free;
   end;
 end;
 
