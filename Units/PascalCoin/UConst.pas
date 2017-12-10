@@ -133,7 +133,7 @@ Const
   CT_PARAM_PeerCache = 'PeerCache';
   CT_PARAM_TryToConnectOnlyWithThisFixedServers = 'TryToConnectOnlyWithFixedServers';
 
-  CT_PARAM_RPC_BIND_IP = 'RCP_BIND_IP';
+  CT_PARAM_RPC_BIND_IP = 'RPC_BIND_IP';
   CT_PARAM_RPC_PORT = 'RPC_PORT';
   CT_PARAM_RPC_SAVELOGS = 'RPC_SAVELOGS';
   CT_PARAM_MINING_SERVER_ACTIVE = 'MINING_SERVER_ACTIVE';
