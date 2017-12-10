@@ -119,6 +119,11 @@ begin
   FIniFile.WriteBool(SectionName, parameter, value);
 end;
 
+procedure TAppParams.SetValue(parameter : AnsiString; value : TAddressPort);
+begin
+  SetValue(parameter, value.address + ':' + IntToStr(value.port));
+end;
+
 function TAppParams.IsNil(parameter : AnsiString) : Boolean;
 begin
   Result := not FIniFile.ValueExists(SectionName, parameter);
@@ -126,27 +131,50 @@ end;
 
 function TAppParams.GetValue(parameter : AnsiString; const default : AnsiString): AnsiString;
 begin
-  Result := FIniFile.ReadString(SectionName, parameter, default);
+  Result := GetEnvironmentVariable(parameter);
+  if Result = '' then
+  begin
+    Result := FIniFile.ReadString(SectionName, parameter, default);
+  end;
 end;
 
-function TAppParams.GetValue(parameter : AnsiString; const default :  Boolean): Boolean;
+function TAppParams.GetValue(parameter : AnsiString; const default : Boolean): Boolean;
+var
+  value : AnsiString;
 begin
+  value := GetEnvironmentVariable(parameter);
+  if value > '' then
+  begin
+    Result := value[1] = '1';
+    exit;
+  end;
   Result := FIniFile.ReadBool(SectionName, parameter, default);
 end;
 
-function TAppParams.GetValue(parameter : AnsiString; const default :  Integer): Integer;
+function TAppParams.GetValue(parameter : AnsiString; const default : Integer): Integer;
+var
+  value : AnsiString;
 begin
+  value := GetEnvironmentVariable(parameter);
+  if value > '' then
+  begin
+    Result := StrToIntDef(value, default);
+    exit;
+  end;
   Result := FIniFile.ReadInteger(SectionName, parameter, default);
 end;
 
 function TAppParams.GetValue(parameter : AnsiString; const default :  Int64): Int64;
+var
+  value : AnsiString;
 begin
+  value := GetEnvironmentVariable(parameter);
+  if value > '' then
+  begin
+    Result := StrToInt64Def(value, default);
+    exit;
+  end;
   Result := FIniFile.ReadInt64(SectionName, parameter, default);
-end;
-
-procedure TAppParams.SetValue(parameter : AnsiString; value : TAddressPort);
-begin
-  SetValue(parameter, value.address + ':' + IntToStr(value.port));
 end;
 
 function TAppParams.GetValue(parameter : AnsiString): TAddressPort; overload;
