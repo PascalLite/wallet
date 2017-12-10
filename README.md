@@ -4,6 +4,12 @@ PascalLite is a P2P Cryptocurrency with human-friendly account numbers (addresse
 To start using it download precompiled Wallet application from `Releases` section or compile it from the source code.  
 Exchanges, processing systems, online shops can use console linux Daemon to control accounts, send and receive payments.  
 
+# Docker
+
+```bash
+docker run -it -v $(readlink -f ~/PascalLite/):/root/PascalLite/ -p 127.0.0.1:4003:4003 -p 4004:4004 -p 127.0.0.1:4009:4009 paslcrypto/node
+```
+
 # Compiling PascalLite from Source
 
 ## Daemon (Debian)
