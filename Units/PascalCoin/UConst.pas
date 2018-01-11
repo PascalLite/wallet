@@ -79,7 +79,7 @@ Const
   CT_MinServersConnected = 3;
   CT_MaxServersConnected = 8;
 
-  CT_MaxClientsConnected = 125;
+  CT_MaxClientsConnected = 25;
 
   CT_BankToDiskEveryNBlocks = 500; // Build 1.3.0 Changed from 1000 to 500
 
